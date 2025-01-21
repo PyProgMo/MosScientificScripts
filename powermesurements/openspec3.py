@@ -1,10 +1,12 @@
 import os
-import re
 import numpy as np
 import matplotlib.pyplot as plt
 from tkinter import messagebox
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from matplotlib.widgets import CheckButtons, Button
+from tkinter import Tk, filedialog
+import matplotlib.colors as mcolors
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -111,6 +113,243 @@ class SpectrumData:
         except AttributeError as e:
             print("Attribute {} not found in class SpectrumData.".format(attr_name))
 
+class InteractivePlot:
+    def __init__(self, x, normspec, activespecs, specabs, labels=None):
+        """
+        Initialize the interactive plot.
+        Args:
+            x (list or array): The x values shared by all datasets.
+            normspec (list of lists or arrays): List of y datasets.
+            activespecs: list of bools to store the visibility state of the lines
+            y_array not normalized
+            labels (list of str): Labels for the datasets. If None, auto-generate labels as ['y1', 'y2', ...].
+        """
+        self.fig, self.ax = plt.subplots()
+        self.activespecs = activespecs
+        self.specabs = specabs
+        self.normspecs = normspec
+        self.WL = x
+        
+        # Dynamically adjust layout to leave space for checkboxes and buttons
+        max_labels = len(self.normspecs)
+        checkbox_height = max(0.029 * max_labels, 0.3)  # Minimum height of 0.3, grows with more labels
+        plt.subplots_adjust(left=0.28, bottom=0.1, top=0.80)
+        
+        # Use labels if provided, otherwise auto-generate labels
+        self.labels = labels if labels else [f"y{i+1}" for i in range(len(self.normspecs))]
+        
+        # Initialize data and plot lines
+        self.lines = self.get_sample_data(self.WL, self.normspecs)
+        self.check = None
+        self.set_line_colors2()
+        self.setup_plot(checkbox_height)
+    
+    def get_sample_data(self, x, y_arrays, plotlabel='Counts normalized'):
+        """
+        Generate plot lines from x and multiple y datasets.
+        Args:
+            x (list or array): The x values shared by all datasets.
+            y_arrays (list of lists or arrays): List of y datasets.
+        Returns:
+            dict: A dictionary mapping labels to their corresponding Line2D objects.
+        """
+        lines = {}
+        for label, y in zip(self.labels, y_arrays):
+            lines[label] = self.ax.plot(x, y, label=label, lw=0.5)[0]
+            # adjust the color of the line
+            lines[label].set_color('black')
+            # set the fontsize of the axis
+            self.ax.fontsize = 12
+            # name y-axis counts per second
+            self.ax.set_ylabel(plotlabel)
+            # name x-axis power in nW
+            self.ax.set_xlabel('Wavelength (nm)')
+            # set y-axis limits to np.amax and np.amin of y_arrays
+            self.ax.set_ylim([np.amin(y_arrays), np.amax(y_arrays)])
+            if self.activespecs[self.labels.index(label)] == False: # set line invisible if not active
+                lines[label].set_visible(False)
+        return lines
+
+    def set_line_colors1(self, start_color='blue', end_color='yellow'):
+        """
+        Adjust the colors of the lines in self.lines to form a gradient between start_color and end_color.
+
+        Args:
+            start_color (str): The starting color of the gradient (e.g., 'blue').
+            end_color (str): The ending color of the gradient (e.g., 'yellow').
+        """
+        # Convert start and end colors to RGB using matplotlib's color converter
+        start_rgb = np.array(mcolors.to_rgb(start_color))
+        end_rgb = np.array(mcolors.to_rgb(end_color))
+
+        # Get the total number of lines
+        num_lines = len(self.lines)
+
+        # Generate the color gradient
+        for i, (label, line) in enumerate(self.lines.items()):
+            # Calculate the interpolation factor
+            t = i / (num_lines - 1) if num_lines > 1 else 0
+            # Interpolate between start_rgb and end_rgb
+            color = start_rgb * (1 - t) + end_rgb * t
+            # Set the line color
+            line.set_color(color)
+    
+    def set_line_colors2(self, start_color='green', end_color='red'):
+        # possible colors are: 
+        # 'blue', 'green', 'red', 'yellow', 'orange', 'purple', 'pink', 'brown', 'gray', 'cyan', 'black', 'white', 'lightgray', 'darkgray'
+        # 'lightblue', 'lightgreen', 'lightred', 'lightyellow', 'lightorange', 'lightpurple', 'lightpink', 'lightbrown', 'lightgray', 'lightcyan', ... 
+        # very good working colors: ('blue', 'yellow')('red', 'green')('purple', 'orange')('teal', 'pink')('navy', 'gold') ('lightblue', 'darkblue')
+        """
+        Adjust the colors of the lines in self.lines to form a gradient between start_color and end_color.
+
+        Args:
+            start_color (str): The starting color of the gradient (e.g., 'blue').
+            end_color (str): The ending color of the gradient (e.g., 'yellow').
+        """
+        # Convert start and end colors to RGB using matplotlib's color converter
+        start_rgb = np.array(mcolors.to_rgb(start_color))
+        end_rgb = np.array(mcolors.to_rgb(end_color))
+
+        # Get the total number of lines
+        num_lines = len(self.lines)
+
+        # Generate the color gradient
+        for i, (label, line) in enumerate(self.lines.items()):
+            # Calculate the interpolation factor with a gamma adjustment for better visibility
+            gamma = 1.5  # Adjust gamma as needed (gamma > 1 for darker emphasis, gamma < 1 for lighter emphasis)
+            t = (i / (num_lines - 1) if num_lines > 1 else 0) ** gamma
+            # Interpolate between start_rgb and end_rgb
+            color = start_rgb * (1 - t) + end_rgb * t
+            # Set the line color
+            line.set_color(color)   
+    
+    def setup_plot(self, checkbox_height):
+        """
+        Set up the plot, including checkboxes, buttons, and legend.
+        Args:
+            checkbox_height (float): Dynamic height of the checkbox area based on the number of datasets.
+        """
+        # Adjust checkbox area dynamically
+        checkbox_start_y = 0.5 - checkbox_height / 1.8
+        rax = plt.axes([0.05, checkbox_start_y, 0.15, checkbox_height])  # [left, bottom, width, height]
+        # set font size of labels
+        plt.rcParams.update({'font.size': 10})
+        self.check = CheckButtons(rax, labels=self.labels, actives=[True] * len(self.labels))
+        
+        # Add "Plot All" button
+        button_ax_all = plt.axes([0.05, checkbox_start_y + checkbox_height + 0.05, 0.15, 0.05])  # "Plot All" button
+        self.plot_all_button = Button(button_ax_all, 'toggle lines')
+        
+        # Add "Save Plot" button
+        button_ax_save = plt.axes([0.21, checkbox_start_y + checkbox_height + 0.05, 0.15, 0.05])  # "Save Plot" button
+        self.save_plot_button = Button(button_ax_save, 'Save Plot')
+
+        # Add "Toggle Colors" button
+        print(checkbox_start_y, checkbox_height, checkbox_start_y + checkbox_height)
+        button_ax_togglelinecounts = plt.axes([0.05, checkbox_start_y + checkbox_height, 0.15, 0.05])  # "Toggle Colors" button
+        self.toggle_linecounts_button = Button(button_ax_togglelinecounts, 'toggle Counts')
+        
+        # Connect the callback functions
+        self.check.on_clicked(self.toggle_visibility)
+        self.plot_all_button.on_clicked(self.plot_all)
+        self.save_plot_button.on_clicked(self.save_plot)
+        self.toggle_linecounts_button.on_clicked(self.toggle_linecounts)
+
+        print(self.activespecs)
+        
+        # Add legend
+        self.ax.legend(
+            loc="upper left",               # Position relative to the bounding box
+            bbox_to_anchor=(1.0, 1.2),        # (x, y) coordinates of the anchor point
+            borderaxespad=0.5,              # Padding between the plot and legend)
+            fontsize= 9                    # Font size of the legend   
+        )
+        plt.draw()
+
+    def clear_sample_data(self):
+        """
+        Remove all lines currently stored in self.lines from the plot.
+        """
+        if hasattr(self, 'lines') and self.lines:
+            # Iterate over all Line2D objects in self.lines
+            for label, line in self.lines.items():
+                # Remove the line from the axes
+                line.remove()
+            
+            # Clear the lines dictionary
+            self.lines.clear()
+            
+            # Optionally redraw the canvas to reflect changes
+            self.ax.figure.canvas.draw()
+        else:
+            print("No lines to remove or self.lines is not defined.")
+    
+    def toggle_linecounts(self, event):
+        # toggle between normalized counts and raw counts
+        if self.ax.get_ylabel() == 'Counts normalized':
+            self.clear_sample_data()
+            self.lines = self.get_sample_data(self.WL, self.specabs, plotlabel='Counts per second')
+        elif self.ax.get_ylabel() == 'Counts per second':
+            self.clear_sample_data()
+            self.lines = self.get_sample_data(self.WL, self.normspecs, plotlabel='Counts normalized')
+        self.set_line_colors2()
+        plt.draw()
+    
+    def toggle_visibility(self, label):
+        """
+        Callback function to toggle visibility of individual lines.
+        """
+        line = self.lines[label]
+        line.set_visible(not line.get_visible())
+        # store visibility state of the line in array
+        self.activespecs[self.labels.index(label)] = line.get_visible()
+
+        plt.draw()
+    
+    def plot_all(self, event):
+        """
+        Callback function to make all lines visible and check all boxes.
+        """
+        for label, line in self.lines.items():
+            if line.get_visible() == True:
+                line.set_visible(False)
+            else:
+                line.set_visible(True)
+            self.toggle_visibility(label)
+            # store visibility state of the line in array
+
+            self.activespecs[self.labels.index(label)] = line.get_visible()
+        for i in range(len(self.check.labels)):
+            self.check.set_active(i)  # Check all boxes
+
+        plt.draw()
+    
+    def save_plot(self, event):
+        """
+        Callback function to save the current plot as an image with 600 DPI.
+        Opens a file dialog to select the file save location.
+        """
+        # Hide the main Tkinter window
+        root = Tk()
+        root.withdraw()
+        
+        # Open file dialog to select save path
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".png",
+            filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg"), ("PDF Files", "*.pdf"), ("All Files", "*.*")]
+        )
+        if file_path:
+            # Save the plot with 600 DPI
+            self.fig.savefig(file_path, dpi=600)
+            print(f"Plot saved to {file_path}")
+        root.destroy()
+    
+    def show(self):
+        """
+        Display the plot.
+        """
+        plt.show()
+
 class OpenSpec:
     def __init__(self, path, linearbg=False, loadeachbg=False):
         self.path = path
@@ -138,8 +377,9 @@ class OpenSpec:
         self.BG = []
         while gotWL == False or gotBG == False:
             try:
-                with open(self.fnames[i], 'r') as file:
-                    lines = file.readlines()
+                if self.fnames[i].split('.')[-1] == 'txt':
+                    with open(self.fnames[i], 'r') as file:
+                        lines = file.readlines()
             except Exception as e:
                 print('Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e)))
             # Process lines to store variables
@@ -237,8 +477,9 @@ class PowerWLplot:
         self.countsinterror = []
         self.tint = []
         self.Laserspotarea = Laserspotarea
+        self.specdata = []
+        self.activespecs = []
     def getpowermaxint(self):
-        print(len(self.powernW))
         powerN = []
         maxintN = []
         countsintN = []
@@ -246,48 +487,71 @@ class PowerWLplot:
         maxintNerror = []
         countsintNerrorx = []
         countsintNerrory = []
-        for i in [-1]:#range(len(self.openspec)):
+        specdata = []
+        activespecs = []
+        for i in [-1]:#range(len(self.openspec)): # in range[-1]
             for j in range(len(list(self.openspec[i].specs.keys()))):
                 powerN.append(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].powernW)
-                maxintN.append(max(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL))
+                maxintN.append(max(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PLB))
                 # X-Error power error: 0.005+2*3/powerN[-1]
                 # Y-Error counts error: time 0.0005 counts 0.1 = 0.0005+0.1
                 powererror = (0.005+2*3/powerN[-1])*powerN[-1]
                 maxintNerror.append([
                     powererror,                 # X-Error                                                                       
-                    np.std(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL)+maxintN[-1]*(0.0005+0.05) # Y-Error
+                    np.std(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PLB)+maxintN[-1]*(0.0005+0.05) # Y-Error
                     ])
-                countsintN.append(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL))
+                countsintN.append(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PLB))
                 countsintNerrorx.append(powererror)
-                countsintNerrory.append(np.sqrt(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL)))
+                countsintNerrory.append(np.sqrt(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PLB)))
                 tintN.append(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].tint)
+                specdata.append(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PLB)
+                activespecs.append(True)
         # correction factors for all numbers
         for i in range(len(maxintN)):
             maxintN[i] /= tintN[i]
             #maxintN[i] /= self.Laserspotarea
             # powerN[i] /= self.Laserspotarea divide power by Laser spotarea if needed
-            powerN[i] /= 3 # 3 is the factor that gets lost by the beam splitter and 4 mirrors
+            powerN[i] *= 0.3 # 3 is the factor that gets lost by the beam splitter and 4 mirrors
             countsintN[i] /= tintN[i] # divide powerN by the integration time in seconds
+            for j in range(len(specdata[i])):
+                specdata[i][j] /= tintN[i] # divide powerN by the integration time in seconds
         self.powernW.append(powerN)
         self.maxint.append(maxintN)
-        #self.maxinterror.append(maxintNerror)
         self.maxinterror = maxintNerror
         self.countsint.append(countsintN)
         self.countsinterror.append([countsintNerrorx, countsintNerrory])
         self.tint.append(tintN)
-        print(self.powernW)
-        print(self.maxint)
-        print(self.tint)
-        print(self.maxinterror)
-        for i in range(len(self.maxinterror)):
-            print('i = {}'.format(i), self.maxinterror[i], "\n")
+        self.specdata.append(specdata)
+        self.activespecs.append(activespecs)
+
+        # sort values by power
+        #self.powernW, self.maxint, self.maxinterror, self.countsint, self.countsinterror, self.tint, self.specdata = zip(*sorted(zip(self.powernW, self.maxint, self.maxinterror, self.countsint, self.countsinterror, self.tint, self.specdata)))
+        for i in range(len(self.powernW)):
+            print([len(self.maxint[i]), '\n', len(self.maxinterror[i]), '\n', len(self.countsint[i]), '\n', len(self.countsinterror[i]), '\n', len(self.tint[i]), '\n', len(self.specdata[i])])
+            print(self.maxinterror[i][0])
+            print(self.maxinterror[i][1])
+                  #, self.maxinterror[i][0], self.maxinterror[i][1], self.countsint[i], self.countsinterror[i][0], self.countsinterror[i][1], self.tint[i], self.specdata[i]))
+            self.powernW[i], sortedarrays = sort_power_and_intensity(self.powernW[i], [self.maxint[i], self.countsint[i], self.countsinterror[i][0], self.countsinterror[i][1], self.tint[i], self.specdata[i]])
+            index = 0
+            self.maxint[i] = sortedarrays[index]
+            index += 1
+            self.countsint[i] = sortedarrays[index]
+            index += 1
+            self.countsinterror[i][0] = sortedarrays[index]
+            index += 1
+            self.countsinterror[i][1] = sortedarrays[index]
+            index += 1
+            self.tint[i] = sortedarrays[index]
+            index += 1
+            self.specdata[i] = sortedarrays[index]
+
+        print('Power: {}'.format(self.powernW))
 
     def pltpowermaxintlinear(self):
         """Plots the power vs maximum intensity."""
         fig, ax = plt.subplots()
         labels = ['Increasing Power', 'Decreasing Power']
         for i in range(len(self.powernW)):
-            print(i)
             ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label=labels[i])#'Counts {}'.format(i+1))
             # add error bars of maxint[i] to the plot
             ax.errorbar(self.powernW[i], self.maxint[i], yerr=self.maxinterror[i][1], xerr=self.maxinterror[i][0], fmt='o', color=self.colors[i])
@@ -405,21 +669,59 @@ class PowerWLplot:
         plt.show()
         savefig(fig, 'PowerCountsIntonlypoints.png', 600)
     
-    def plotspecsnormalized(self):
-        # plot all spectra normalized to the highest intensity
-        fig, ax = plt.subplots()
+    def pltspecnormalized(self):
+        """Plots the normalized spectra."""
+        self.specnormalized = []
+        self.specabs = []
+        self.plotlabels = []
+        self.WL = self.openspec[0].WL
         for i in range(len(self.openspec)):
-            for j in range(len(list(self.openspec[i].specs.keys()))):
-                spec = self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]]
-                # align spectra to the lowest intensity set lowest intensity to 0 and highest to 1
-                plt.plot(spec.WL, (spec.PL - np.amin(spec.PL)) / (np.amax(spec.PL) - np.amin(spec.PL)), label='{} nW'.format(spec.powernW))
-        
-        ax.legend()
-        ax.set_xlabel('Wavelength (nm)')
-        ax.set_ylabel('Normalized Intensity')
-        ax.set_title('Normalized Spectra')
-        plt.tight_layout()
-        plt.show()
+            for j in range(len(self.openspec[i].specs)):
+                # Normalize the spectra set the maximum to 1 and the minimum to 0
+                maxspec = np.amax(self.specdata[i][j])
+                minspec = np.amin(self.specdata[i][j])
+                self.specnormalized.append((self.specdata[i][j] - minspec) / (maxspec - minspec))
+                self.specabs.append(self.specdata[i][j])
+                self.plotlabels.append('{} nW'.format(round(self.powernW[i][j], 1)))
+            self.interactive_specplot = InteractivePlot(self.WL, self.specnormalized, self.activespecs[i], self.specabs, labels=self.plotlabels)
+            self.interactive_specplot.show()
+
+# Sorting function to sort the files by power
+def get_sort_indexes(atosort):
+    """
+    Returns the indices that can be used to sort the array.
+    
+    Args:
+        atosort (list): The array to be sorted.
+    
+    Returns:
+        list: Indices that would sort the array.
+    """
+    asortind = sorted(range(len(atosort)), key=lambda i: atosort[i])
+    return asortind
+
+def sort_power_and_intensity(Power, Intensity):
+    """
+    Sorts the Power array and rearranges the Intensity arrays to maintain the pairing.
+    
+    Args:
+        Power (list): The array of Power values to sort.
+        Intensity (list of lists): The array of arrays of Intensity values paired with Power.
+    
+    Returns:
+        tuple: Two sorted lists, (sorted_Power, sorted_Intensity), where sorted_Intensity
+               has all subarrays rearranged to match the sorted Power order.
+    """
+    # Obtain the sorting indices
+    asortind = get_sort_indexes(Power)
+    
+    # Rearrange Power based on sorting indices
+    sorted_Power = [Power[i] for i in asortind]
+    
+    # Rearrange each Intensity sub-array based on sorting indices
+    sorted_Intensity = [[Intensity[j][i] for i in asortind] for j in range(len(Intensity))]
+    
+    return sorted_Power, sorted_Intensity
     
 # GUI Functionality
 def select_search_dir():
@@ -451,7 +753,6 @@ def select_save_dir(save_dir_var):
     dir_path = filedialog.askdirectory(title="Select Save Directory")
     if dir_path:
         save_dir_var.set(dir_path)
-
 
 # Example usage:
 # Assuming the text files are located in a folder named "testfiles":
@@ -492,6 +793,6 @@ tk.Button(root, text="Plot Power vs Counts per second Linear", command=lambda: P
 tk.Button(root, text="Plot Power vs Counts per second Zero fit", command=lambda: PIplot.pltpowercountsintzerofit()).pack()
 # add spacing # Plot all spectra normalized
 tk.Label(root, text="Plot all spectra normalized").pack()
-tk.Button(root, text="Plot all spectra normalized", command=lambda: PIplot.plotspecsnormalized()).pack()
+tk.Button(root, text="Plot all spectra normalized", command=lambda: PIplot.pltspecnormalized()).pack()
 
 root.mainloop()
