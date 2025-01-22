@@ -515,22 +515,19 @@ class PowerWLplot:
             countsintN[i] /= tintN[i] # divide powerN by the integration time in seconds
             for j in range(len(specdata[i])):
                 specdata[i][j] /= tintN[i] # divide powerN by the integration time in seconds
-        self.powernW.append(powerN)
-        self.maxint.append(maxintN)
-        self.maxinterror = maxintNerror
-        self.countsint.append(countsintN)
-        self.countsinterror.append([countsintNerrorx, countsintNerrory])
-        self.tint.append(tintN)
-        self.specdata.append(specdata)
-        self.activespecs.append(activespecs)
+        self.powernW.append(powerN) # is in sort
+        self.maxint.append(maxintN) # is in sort
+        # there was an issure with maxintNerror, maybe fix this in the future
+        self.maxinterror = maxintNerror # is not in sort, maybe add 
+        self.countsint.append(countsintN) # is in sort
+        self.countsinterror.append([countsintNerrorx, countsintNerrory]) # is in sort
+        self.tint.append(tintN) # is in sort
+        self.specdata.append(specdata) # is in sort
+        self.activespecs.append(activespecs) # is not in sort but is not required to be sorted (at the current time)
 
         # sort values by power
         #self.powernW, self.maxint, self.maxinterror, self.countsint, self.countsinterror, self.tint, self.specdata = zip(*sorted(zip(self.powernW, self.maxint, self.maxinterror, self.countsint, self.countsinterror, self.tint, self.specdata)))
         for i in range(len(self.powernW)):
-            print([len(self.maxint[i]), '\n', len(self.maxinterror[i]), '\n', len(self.countsint[i]), '\n', len(self.countsinterror[i]), '\n', len(self.tint[i]), '\n', len(self.specdata[i])])
-            print(self.maxinterror[i][0])
-            print(self.maxinterror[i][1])
-                  #, self.maxinterror[i][0], self.maxinterror[i][1], self.countsint[i], self.countsinterror[i][0], self.countsinterror[i][1], self.tint[i], self.specdata[i]))
             self.powernW[i], sortedarrays = sort_power_and_intensity(self.powernW[i], [self.maxint[i], self.countsint[i], self.countsinterror[i][0], self.countsinterror[i][1], self.tint[i], self.specdata[i]])
             index = 0
             self.maxint[i] = sortedarrays[index]
@@ -543,7 +540,9 @@ class PowerWLplot:
             index += 1
             self.tint[i] = sortedarrays[index]
             index += 1
-            self.specdata[i] = sortedarrays[index]
+            self.specdata[i] = sortedarrays[index] 
+            # maybe add more items to sort here, depending on what is needed
+            # note, 
 
         print('Power: {}'.format(self.powernW))
 
