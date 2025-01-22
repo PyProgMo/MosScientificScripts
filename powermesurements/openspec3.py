@@ -542,7 +542,6 @@ class PowerWLplot:
             index += 1
             self.specdata[i] = sortedarrays[index] 
             # maybe add more items to sort here, depending on what is needed
-            # note, 
 
         print('Power: {}'.format(self.powernW))
 
