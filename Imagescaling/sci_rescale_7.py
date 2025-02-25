@@ -24,6 +24,9 @@ class ScaleBarApp:
         self.root.title("Draggable Scale Bar")
         self.magnification = magnification
 
+        # test: add counter for n-th image that is saved
+        self.countn = 1
+
         # Create a frame for the canvas and scrollbars
         self.frame = tk.Frame(self.root)
         self.frame.pack(fill=tk.BOTH, expand=True)
@@ -198,8 +201,9 @@ class ScaleBarApp:
         draw.text((self.bar_x, self.bar_y + self.bar_height + 5), self.text, fill="white", font=font)
         # Save the image with "_saved" in the filename
         base, ext = os.path.splitext(self.image_path)
-        new_image_path = f"{base}_saved{ext}"
+        new_image_path = f"{base}_saved_{self.countn}_{ext}"
         edited_image.save(new_image_path)
+        self.countn += 1
         messagebox.showinfo("Image Saved", f"Image saved as {new_image_path}")
     
     def on_frame_configure(self, event):
