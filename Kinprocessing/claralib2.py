@@ -154,14 +154,12 @@ class clarakinetics():
         self.implframe = tk.Frame(self.kinetics_frame)
         self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
 
-        # update kinetics_frame
-        self.kinplot()
                                       
     
     def kinplot(self):
         # get plotimage from self.cimages[i].imagedata
         self.plotimageN = 0
-        self.plotimage = self.cimages[self.plotimageN].imagedata
+        self.plotimage = np.asarray(self.cimages[self.plotimageN].imagedata)
 
         # create a new frame for the image plotting where one image will be displayed
         self.implotframe = tk.Frame(self.kinetics_frame)
@@ -188,15 +186,21 @@ class clarakinetics():
     
     def updateimage(self):
         # update self.cfimages[self.plotimageN].imagedata since self.plotimageN has changed
-        self.plotimage = self.cimages[self.plotimageN].imagedata
+        self.plotimage = np.asarray(self.cimages[self.plotimageN].imagedata)
         self.plotimage()
         
 
-
+    def nextimage(self):
+        self.plotimageN += 1
+        if self.plotimageN >= len(self.cimages):
+            self.plotimageN = 0
+        self.updateimage()
 
     def previmage(self):
-        pass
-
+        self.plotimageN -= 1
+        if self.plotimageN < 0:
+            self.plotimageN = len(self.cimages)-1
+        self.updateimage()
 
 
     def updloaddir(self):
@@ -215,6 +219,7 @@ class clarakinetics():
             self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
         
         print('Loaded', len(self.cimages), 'files')
+        self.kinplot()
 
     def browsefiles(self):
         self.dir = tk.filedialog.askdirectory()
@@ -226,6 +231,8 @@ class clarafile():
         self.dx = dx
         self.dy = dy
         self.imagedata, self.metadata = loadclaraimage(self.fn, True)
+        plt.imshow(self.imagedata, cmap='viridis')
+        plt.show()
     
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
