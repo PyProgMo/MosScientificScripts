@@ -155,6 +155,10 @@ class clarakinetics():
                                       
     
     def kinplot(self):
+        # get plotimage from self.cimages[i].imagedata
+        self.plotimageN = 0
+        self.plotimage = self.cimages[self.plotimageN].imagedata
+
         # create a new frame for the image plotting where one image will be displayed
         self.implotframe = tk.Frame(self.kinetics_frame)
         self.implotframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
@@ -164,7 +168,10 @@ class clarakinetics():
         self.nextbutton = tk.Button(self.implotframe, text='Next', command=self.nextimage)
         self.nextbutton.grid(row=0, column=1)
                                     
-                                    
+
+    def previmage(self):
+        pass
+
 
 
     def updloaddir(self):
