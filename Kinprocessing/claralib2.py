@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class imageprocessor():
     def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
@@ -152,6 +153,9 @@ class clarakinetics():
         # construct implotframe in a new frame on the notebook
         self.implframe = tk.Frame(self.kinetics_frame)
         self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+
+        # update kinetics_frame
+        self.kinplot()
                                       
     
     def kinplot(self):
@@ -171,8 +175,23 @@ class clarakinetics():
         self.imlabel = tk.Label(self.implotframe, text='Image: '+str(self.plotimageN))
         self.imlabel.grid(row=0, column=1)
         # plot the image
+        self.plotimage()
 
     def plotimage(self):
+        # Displays self.cfnames[self.plotimageN] on the given Tkinter frame.
+        self.fig, self.ax = plt.subplots(figsize=(5, 5))
+        self.cim = self.ax.imshow(self.plotimage, cmap='viridis')
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.implframe)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    
+    def updateimage(self):
+        # update self.cfimages[self.plotimageN].imagedata since self.plotimageN has changed
+        self.plotimage = self.cimages[self.plotimageN].imagedata
+        self.plotimage()
+        
+
 
 
     def previmage(self):
