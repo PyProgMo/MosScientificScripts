@@ -4,6 +4,8 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
+from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class imageprocessor():
     def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
@@ -128,11 +130,14 @@ class clarakinetics():
         self.dx = dx
         self.dy = dy
         self.files = getcimages(self.dir)
+        self.plotexists = False
+        self.colormap = tk.StringVar()
+        self.colormap.set('gray')
         self.buildnotebook()
     
     def buildnotebook(self):
         # create a new frame for the kinetics processing
-        self.kinetics_frame = tk.Frame(self.Notebook)
+        self.kinetics_frame = tk.Frame(self.Notebook, border=1, relief="ridge")
         self.kinetics_frame.grid(row=0, column=0, sticky='nsew')
 
         # add entry to select a dir and save on self.sdir
@@ -149,12 +154,114 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.kinetics_frame, text='Load', command=self.loadfiles)
         self.loadbutton.grid(row=0, column=3, sticky='w')
 
+        # construct implotframe in a new frame on the notebook
+        self.implframe = tk.Frame(self.kinetics_frame)
+        self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')                           
+    
+    def kinplot(self):
+        # get plotimage from self.cimages[i].imagedata
+        self.plotimageN = 0
+
+        # create a new frame for the image plotting where one image will be displayed
+        self.implotframe = tk.Frame(self.kinetics_frame)
+        self.implotframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+
+        # all possible colormaps
+        self.allcmlist = list(plt.colormaps())
+        # add a selectbox to select the colormap
+        self.colormaplabel = tk.Label(self.implotframe, text='Colormap:')
+        self.colormaplabel.grid(row=0, column=0)
+        # tk.Listbox(self.implotframe, self.colormap, *self.allcmlist)
+        self.colormapselect = ttk.Combobox(self.implotframe, textvariable=self.colormap, values=self.allcmlist)
+        # bind the selectbox to the function plotimage
+        self.colormapselect.bind('<<ComboboxSelected>>', lambda event: self.plotimage())
+        self.colormapselect.grid(row=0, column=1)
+        # add a button to plot the image
+        self.plotbutton = tk.Button(self.implotframe, text='Plot Image N', command=self.plotimage)
+        self.plotbutton.grid(row=0, column=2)
+
+        # add selectbox to select the image to plot
+        self.imageN = tk.StringVar()
+        self.imageN.set('0')
+        self.imageNlabel = tk.Label(self.implotframe, text='Image:')
+        self.imageNlabel.grid(row=0, column=3)
+        # self.implotframe, self.imageN, *range(len(self.cimages)))
+        self.imageNselect = ttk.Combobox(self.implotframe, textvariable=self.imageN, values=[str(i) for i in range(len(self.cimages))])
+        # bind the selectbox to the function imageNselecttoN
+        self.imageNselect.bind('<<ComboboxSelected>>', lambda event: self.imageNselecttoN())
+        self.imageNselect.grid(row=0, column=4)
+        # add a button to plot the image
+        self.plotbutton = tk.Button(self.implotframe, text='Plot Image', command=self.plotimage)
+
+        # add 2 buttons to switch in the kinetic series 
+        self.prevbutton = tk.Button(self.implotframe, text='Previous', command=self.previmage)
+        self.prevbutton.grid(row=1, column=0)
+        self.nextbutton = tk.Button(self.implotframe, text='Next', command=self.nextimage)
+        self.nextbutton.grid(row=1, column=2)
+        # print which N image is being displayed
+        self.imlabel = tk.Label(self.implotframe, text='Image: '+str(self.plotimageN))
+        self.imlabel.grid(row=1, column=1)
+        # plot the image
+        self.plotimage()
+    
+    def imageNselecttoN(self):
+        self.plotimageN = int(self.imageN.get())
+        self.updimglabel()
+        self.plotimage()
+
+    def plotimage(self):
+        # update colormap
+        self.pltimg = np.asarray(self.cimages[self.plotimageN].imagedata)
+
+        # check if the plot is already displayed
+        if hasattr(self, 'implot'):
+            self.plotexists = True
+        # if plot already exists: 
+        if self.plotexists:
+            # just adjust the image
+            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
+        else:
+            # Displays self.cfnames[self.plotimageN] on the given Tkinter frame.
+            self.fig, self.ax = plt.subplots(figsize=(5, 5))
+            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
+            self.plotexists = True
+        # set cmat to gryscale
+        self.ax.set_title(self.cfnames[self.plotimageN])
+        self.ax.set_xlabel('X')
+        self.ax.set_ylabel('Y')
+        self.ax.set_aspect('equal')
+        self.ax.grid(False)
+
+        # show the plot
+        plt.tight_layout()
+        plt.show()
+    
+    def updateimage(self):
+        self.updimglabel()
+        # update self.cfimages[self.plotimageN].imagedata since self.plotimageN has changed
+        self.plotimage()
+
+    def nextimage(self):
+        self.plotimageN += 1
+        if self.plotimageN >= len(self.cimages):
+            self.plotimageN = 0
+        self.updateimage()
+
+    def previmage(self):
+        self.plotimageN -= 1
+        if self.plotimageN < 0:
+            self.plotimageN = len(self.cimages)-1
+        self.updateimage()
+
     def updloaddir(self):
         self.dir = self.sdir.get()
 
         self.cfnames = getcimages(self.dir)
         print('Loaded', len(self.cfnames), 'files')
-        #self.loadfiles()
+    
+    def updimglabel(self):
+        text='Image: '+str(self.plotimageN)
+        self.imlabel.config(text=text)
     
     def loadfiles(self):
         self.cimages = []
@@ -165,18 +272,25 @@ class clarakinetics():
             self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
         
         print('Loaded', len(self.cimages), 'files')
+        self.kinplot()
 
     def browsefiles(self):
         self.dir = tk.filedialog.askdirectory()
         self.sdir.set(self.dir)
+    
+    def close(self):
+        plt.close(self.fig)
+        # close the canvas
+        self.canvas.get_tk_widget().destroy()
+        # close the frame
+        self.kinetics_frame.destroy()
 
 class clarafile():
     def __init__(self, file, dx, dy):
         self.fn = file
         self.dx = dx
         self.dy = dy
-        self.imagedata, self.metadata = loadclaraimage(self.fn, True)
-    
+        self.imagedata, self.metadata = loadclaraimage(self.fn, True)    
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
     """
