@@ -159,7 +159,7 @@ class clarakinetics():
     def kinplot(self):
         # get plotimage from self.cimages[i].imagedata
         self.plotimageN = 0
-        self.plotimage = np.asarray(self.cimages[self.plotimageN].imagedata)
+        self.pltimg = np.asarray(self.cimages[self.plotimageN].imagedata)
 
         # create a new frame for the image plotting where one image will be displayed
         self.implotframe = tk.Frame(self.kinetics_frame)
@@ -178,7 +178,7 @@ class clarakinetics():
     def plotimage(self):
         # Displays self.cfnames[self.plotimageN] on the given Tkinter frame.
         self.fig, self.ax = plt.subplots(figsize=(5, 5))
-        self.cim = self.ax.imshow(self.plotimage, cmap='viridis')
+        self.cim = self.ax.imshow(self.pltimg, cmap='viridis')
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.implframe)
         self.canvas.draw()
@@ -186,7 +186,7 @@ class clarakinetics():
     
     def updateimage(self):
         # update self.cfimages[self.plotimageN].imagedata since self.plotimageN has changed
-        self.plotimage = np.asarray(self.cimages[self.plotimageN].imagedata)
+        self.pltimg = np.asarray(self.cimages[self.plotimageN].imagedata)
         self.plotimage()
         
 
