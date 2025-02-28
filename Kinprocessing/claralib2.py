@@ -149,6 +149,24 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.kinetics_frame, text='Load', command=self.loadfiles)
         self.loadbutton.grid(row=0, column=3, sticky='w')
 
+        # construct implotframe in a new frame on the notebook
+        self.implframe = tk.Frame(self.kinetics_frame)
+        self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+                                      
+    
+    def kinplot(self):
+        # create a new frame for the image plotting where one image will be displayed
+        self.implotframe = tk.Frame(self.kinetics_frame)
+        self.implotframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+        # add 2 buttons to switch in the kinetic series 
+        self.prevbutton = tk.Button(self.implotframe, text='Previous', command=self.previmage)
+        self.prevbutton.grid(row=0, column=0)
+        self.nextbutton = tk.Button(self.implotframe, text='Next', command=self.nextimage)
+        self.nextbutton.grid(row=0, column=1)
+                                    
+                                    
+
+
     def updloaddir(self):
         self.dir = self.sdir.get()
 
