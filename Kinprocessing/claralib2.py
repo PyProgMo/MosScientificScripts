@@ -166,8 +166,14 @@ class clarakinetics():
         self.prevbutton = tk.Button(self.implotframe, text='Previous', command=self.previmage)
         self.prevbutton.grid(row=0, column=0)
         self.nextbutton = tk.Button(self.implotframe, text='Next', command=self.nextimage)
-        self.nextbutton.grid(row=0, column=1)
-                                    
+        self.nextbutton.grid(row=0, column=2)
+        # print which N image is being displayed
+        self.imlabel = tk.Label(self.implotframe, text='Image: '+str(self.plotimageN))
+        self.imlabel.grid(row=0, column=1)
+        # plot the image
+
+    def plotimage(self):
+
 
     def previmage(self):
         pass
