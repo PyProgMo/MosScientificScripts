@@ -91,7 +91,6 @@ frame.pack(fill="both", expand=True)
 dx = dx = 0.0568*2#0.0568 
 dy = 0.0568*2#0.0568
 
-
 # create clara processing frame
 imp = cl.imageprocessor(nodeframes["Clara1"], f, cl.loadclaraimage, None, dx, dy)
 

@@ -71,12 +71,29 @@ class imageprocessor():
 # loadclaraimage function from deflib1
 def loadclaraimage(file, metadata=False):
     coord = None
+    readz = False
     if metadata == True:
         try:
             coord = float(file.split('\\')[-1].split('.')[0].replace('_', '.')) # z in mum
+            readz = True
         except:
             print(file.split('\\')[-1].split('.')[0].replace('_', '.'))
-            print('Error: unable to extract z-coordinate from filename')
+            print('Error: unable to extract z-coordinate from filename. Try to read digits')
+            readz = False
+        if readz == False:
+            spf = file.split('\\')[-1].split('.')[0]
+            rc = 0
+            for i in reversed(spf):
+                if i.isdigit():
+                    rc += 1
+                else:
+                    break
+            try:
+                coord = float(spf[-rc:])
+                print('z-coordinate:', coord)
+            except:
+                print('Error: unable to extract z-coordinate from filename. Try to read digits')
+
 
     with open(file) as f:
         if metadata == True:
@@ -212,24 +229,31 @@ class clarakinetics():
         # update colormap
         self.pltimg = np.asarray(self.cimages[self.plotimageN].imagedata)
 
-        # check if the plot is already displayed
-        if hasattr(self, 'implot'):
-            self.plotexists = True
         # if plot already exists: 
         if self.plotexists:
             # just adjust the image
             self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
+            # delete the colorbar and create a new one
+            self.cbar.remove()
+            self.cbar = self.fig.colorbar(self.cim, ax=self.ax)
+
         else:
-            # Displays self.cfnames[self.plotimageN] on the given Tkinter frame.
+            # create a new plot
             self.fig, self.ax = plt.subplots(figsize=(5, 5))
             self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
             self.plotexists = True
+            # add colorbar
+            self.cbar = self.fig.colorbar(self.cim, ax=self.ax)
+
         # set cmat to gryscale
         self.ax.set_title(self.cfnames[self.plotimageN])
         self.ax.set_xlabel('X')
         self.ax.set_ylabel('Y')
         self.ax.set_aspect('equal')
         self.ax.grid(False)
+
+        # add close event
+        self.fig.canvas.mpl_connect('close_event', lambda event: self.close())
 
         # show the plot
         plt.tight_layout()
@@ -278,11 +302,7 @@ class clarakinetics():
         self.sdir.set(self.dir)
     
     def close(self):
-        plt.close(self.fig)
-        # close the canvas
-        self.canvas.get_tk_widget().destroy()
-        # close the frame
-        self.kinetics_frame.destroy()
+        self.plotexists = False
 
 class clarafile():
     def __init__(self, file, dx, dy):
