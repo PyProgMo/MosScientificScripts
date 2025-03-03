@@ -64,7 +64,7 @@ def getfiles():
 # load the files here - adjust d and f to the desired directory and file
 #d = getdir() # open dir # run this cell to open a dir and save it on d
 #print(d)
-d = "C:/Users/volib/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos_test".replace("/", "\\")
+d = "C:/Users/volib/Desktop/Evaluation/data/2024/Perovskite/Caroline_Kloth/clarakin_t1/tm1/image/N1Uncaped_40step_15min/kinascfiles".replace("/", "\\")
 print('d = ', d)
 #f = getfiles() # open files # run this cell to open files and save them to the array f
 # example: f = C:\Users\volib\Desktop\Evaluation\data\2024\qdot_100fach\Laser_in_zpos
@@ -77,41 +77,60 @@ print('f = ', f)
 # create tkinter window
 root = tk.Tk()
 root.geometry('{}x{}'.format(800, 600))
-frame = ttk.Frame(root)
-# create nodeframes
-nodeframes = {}
-# create notebook with title "Clara1"
-notebook = ttk.Notebook(frame)
-notebook.pack(fill="both", expand=True)
-nodeframes["Clara1"] = ttk.Frame(notebook)
-notebook.add(nodeframes["Clara1"], text="Clara1")
-# pack the clara1 frame
-frame.pack(fill="both", expand=True)
 
-dx = dx = 0.0568*2#0.0568 
-dy = 0.0568*2#0.0568
+class ClaraApp:
+    def __init__(self, root):
+        self.root = root
+        self.loadframe = ttk.Frame(root)
 
-# create clara processing frame
-imp = cl.imageprocessor(nodeframes["Clara1"], f, cl.loadclaraimage, None, dx, dy)
+        # create nodeframes
+        self.nodeframes = {}
+        # create notebook with title "Clara1"
+        self.notebook = ttk.Notebook(self.loadframe)
+        self.notebook.pack(fill="both", expand=True)
+        self.nodeframes["Clara1"] = ttk.Frame(self.notebook)
+        self.notebook.add(self.nodeframes["Clara1"], text="Clara1")
+        # pack the clara1 frame
+        self.loadframe.pack(fill="both", expand=True)
 
-# add new notebook tab for the clara kinetics processing
-nodeframes["Clara Kinetics"] = ttk.Frame(notebook)
-notebook.add(nodeframes["Clara Kinetics"], text="Clara Kinetics")
-kin = cl.clarakinetics(nodeframes["Clara Kinetics"], os.path.dirname(f), dx, dy)
+        self.dx = 0.0568*2#0.0568 
+        self.dy = 0.0568*2#0.0568
 
-# select the the "Clara Kinetics" tab
-notebook.select(nodeframes["Clara Kinetics"]) 
+        # create clara processing frame
+        self.imp = cl.imageprocessor(self.nodeframes["Clara1"], f, cl.loadclaraimage, None, self.dx, self.dy)
 
-def on_closing():
-    try:
+        # add new notebook tab for the clara kinetics processing
+        self.nodeframes["Clara Kinetics"] = ttk.Frame(self.notebook)
+        self.notebook.add(self.nodeframes["Clara Kinetics"], text="Clara Kinetics")
+        kin = cl.clarakinetics(self.nodeframes["Clara Kinetics"], os.path.dirname(f), self.dx, self.dy)
+
+        # init the clara kinetics processing
+        #self.roisetup()
+
+        # select the the "Clara Kinetics" tab
+        self.notebook.select(self.nodeframes["Clara Kinetics"]) 
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # run the tkinter main loop - required to plot images and interact with the GUI
+        self.root.mainloop()
+    
+    def roisetup(self):
+        # roi frame below the clara kinetics processing on the "Clara Kinetics" tab
+        self.roiframe = ttk.Frame(self.nodeframes["Clara Kinetics"], border=2, relief="groove")
+        self.roiframe.grid(row=1, column=0, sticky="nsew")
+        # create a label for the roi frame 
+        self.roilabel = ttk.Label(self.roiframe, text="ROI")
+        self.roilabel.grid(row=1, column=1, sticky="nsew")
+        # create a button to select the roi
         
-        kin.close()
-    except:
-        pass
-    root.destroy()
-
-root.protocol("WM_DELETE_WINDOW", on_closing)
+        self.roihandler = cl.Roihandler()
 
 
-# run the tkinter main loop - required to plot images and interact with the GUI
-root.mainloop()
+    def on_closing(self):
+        try:
+            
+            self.kin.close()
+        except:
+            pass
+        self.root.destroy()
+
+Clara = ClaraApp(root)

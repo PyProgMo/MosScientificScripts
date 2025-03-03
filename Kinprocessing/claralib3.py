@@ -1,10 +1,13 @@
 import numpy as np
-import os, sys, re
+import os, sys, re, cv2
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
+from matplotlib.widgets import Button
+from matplotlib.path import Path
 
 class imageprocessor():
     def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
@@ -77,8 +80,6 @@ def loadclaraimage(file, metadata=False):
             coord = float(file.split('\\')[-1].split('.')[0].replace('_', '.')) # z in mum
             readz = True
         except:
-            print(file.split('\\')[-1].split('.')[0].replace('_', '.'))
-            print('Error: unable to extract z-coordinate from filename. Try to read digits')
             readz = False
         if readz == False:
             spf = file.split('\\')[-1].split('.')[0]
@@ -90,10 +91,8 @@ def loadclaraimage(file, metadata=False):
                     break
             try:
                 coord = float(spf[-rc:])
-                print('z-coordinate:', coord)
             except:
-                print('Error: unable to extract z-coordinate from filename. Try to read digits')
-
+                pass
 
     with open(file) as f:
         if metadata == True:
@@ -174,13 +173,13 @@ class clarakinetics():
         self.implframe = tk.Frame(self.kinetics_frame)
         self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')                           
     
-    def kinplot(self):
+    def kinplot(self, notebook, row=0):
         # get plotimage from self.cimages[i].imagedata
         self.plotimageN = 0
 
         # create a new frame for the image plotting where one image will be displayed
-        self.implotframe = tk.Frame(self.kinetics_frame)
-        self.implotframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+        self.implotframe = tk.Frame(notebook, border=2, relief='ridge')
+        self.implotframe.grid(row=row, column=0, columnspan=4, sticky='nsew')
 
         # all possible colormaps
         self.allcmlist = list(plt.colormaps())
@@ -188,7 +187,7 @@ class clarakinetics():
         self.colormaplabel = tk.Label(self.implotframe, text='Colormap:')
         self.colormaplabel.grid(row=0, column=0)
         # tk.Listbox(self.implotframe, self.colormap, *self.allcmlist)
-        self.colormapselect = ttk.Combobox(self.implotframe, textvariable=self.colormap, values=self.allcmlist)
+        self.colormapselect = ttk.Combobox(self.implotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
         # bind the selectbox to the function plotimage
         self.colormapselect.bind('<<ComboboxSelected>>', lambda event: self.plotimage())
         self.colormapselect.grid(row=0, column=1)
@@ -290,12 +289,12 @@ class clarakinetics():
         self.cimages = []
         self.cfnames = []
         self.cfnames = getcimages(self.dir)
-        print(self.dir)
         for i in range(len(self.cfnames)):
             self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
-        
-        print('Loaded', len(self.cimages), 'files')
-        self.kinplot()
+    
+        self.kinplot(self.Notebook, row=1)  # plot the loaded images
+        self.buildroiframe(self.Notebook, row=2) # build the roi editing frame
+        self.buildkinframe(self.Notebook, row=3) # build the kinetics processing frame
 
     def browsefiles(self):
         self.dir = tk.filedialog.askdirectory()
@@ -303,6 +302,83 @@ class clarakinetics():
     
     def close(self):
         self.plotexists = False
+    
+    def buildroiframe(self, notebook, row=0):
+        self.roilist = {}
+
+        # create a new frame for the roi editing on the notebook
+        self.roiframe = tk.Frame(notebook, border=2, relief='ridge')
+        self.roiframe.grid(row=row, column=0, sticky='nsew')
+        # add text to the frame
+        self.roilabel = tk.Label(self.roiframe, text='ROI Editing')
+        self.roilabel.grid(row=0, column=0, sticky='w')
+        # add a combobox to select the roi
+        self.roiselgui = ttk.Combobox(self.roiframe, values=list(self.roilist.keys()))
+        self.roiselgui.grid(row=0, column=1)
+        self.roihand = Roihandler(self.roilist, self.cimages[0].imagedata)
+
+        # add start button to start the roi selection
+        self.startbutton = tk.Button(self.roiframe, text='Start ROI editing', command=lambda: self.roihand.construct(self.cimages[0].imagedata, self.roiselgui))
+        self.startbutton.grid(row=0, column=2)
+        # add a button to delete the roi
+        self.delbutton = tk.Button(self.roiframe, text='Delete ROI', command=self.roihand.delete_roi)
+        self.delbutton.grid(row=0, column=3)
+        # add a button to plot the roi
+        self.plotroibutton = tk.Button(self.roiframe, text='Plot ROI', command=self.roihand.plotroi)
+        self.plotroibutton.grid(row=0, column=4)
+    
+    def buildkinframe(self, notebook, row=0):
+        self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
+        self.kinframe.grid(row=row, column=0, sticky='nsew')
+        
+        # add a headline to the frame
+        self.kinlabel = tk.Label(self.kinframe, text='Kinetics Processing')
+        # grid the headline to the first row
+        self.kinlabel.grid(row=0, sticky='w')
+
+        # store image series in self.imageseries
+        self.imageseries = []
+        for i in range(len(self.cimages)):
+            self.imageseries.append(self.cimages[i].imagedata)
+        
+        self.kinmethods = ['Thresholding', 'Integration', 'Edge detection']
+        self.kinmethodlabel = tk.Label(self.kinframe, text='Select method:')
+        self.kinmethodlabel.grid(row=1, column=0)
+        # select method to compute the kinetics
+        self.kinmethod = tk.StringVar()
+        self.kinmethod.set(self.kinmethods[0])
+        self.kinmethodselect = ttk.Combobox(self.kinframe, textvariable=self.kinmethod, values=self.kinmethods)
+        self.kinmethodselect.grid(row=1, column=1)
+
+        # add a parameter for kinetics processing
+        self.kinparamlabel = tk.Label(self.kinframe, text='Parameter:')
+        self.kinparamlabel.grid(row=1, column=2)
+        self.kinparam = tk.StringVar()
+        self.kinparam = tk.Entry(self.kinframe, textvariable=self.kinparam, width=10)
+        self.kinparam.grid(row=1, column=3)
+        
+        # create a new instance of NanocrystalKinetics
+        self.Nckin = NanocrystalKinetics(self.imageseries)
+        
+        # add a button to compute the kinetics
+        self.kinbutton = tk.Button(self.kinframe, text='Compute Kinetics', command=lambda: self.Nckin.compute_kinetics1(int(self.kinparam.get())))
+        self.kinbutton.grid(row=1, column=4)
+
+        # add a button to plot the kinetics
+        self.plotkinbutton = tk.Button(self.kinframe, text='Plot Kinetics', command=self.Nckin.plot_kinetics)
+        self.plotkinbutton.grid(row=1, column=5)
+
+        # export kinetics image to a file
+        self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
+        self.exportkinbutton.grid(row=1, column=6)
+    
+    def exportkinetics(self):
+        # ask for a filename
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.png')
+        # save the kinetics plot to the file
+        self.Nckin.plot_kinetics()
+        plt.savefig(filename)
+
 
 class clarafile():
     def __init__(self, file, dx, dy):
@@ -441,3 +517,182 @@ def find_x_thresh(x0, sigma_x, amplitude, thresh):
     x_thresh = x0 + np.sqrt(-2 * sigma_x**2 * np.log(thresh / amplitude))
     return x_thresh
 
+class Roihandler():
+    def __init__(self, roilist={}, pixmatrix=[[]]):
+        self.roi_mode = True
+        self.roi_points = []
+        self.roi_lines = []
+        self.fig = None
+        self.roilist = roilist
+        self.pixmatrix = pixmatrix
+        self.pixmatrix = np.transpose(self.pixmatrix)
+
+    def construct(self, pixmatrix, roiselgui):
+        self.pixmatrix = pixmatrix
+        self.pixmatrix = np.transpose(self.pixmatrix)
+        self.roiselgui = roiselgui
+        self.fig, self.ax = plt.subplots()
+        self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
+        self.ax.imshow(pixmatrix, cmap='viridis')
+        # plt.axess([left, bottom, width, height])
+        self.ax_button_toggle = plt.axes([0.89, 0.95, 0.1, 0.05])
+        self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
+        self.button_toggle.on_clicked(self.toggle_roi)
+        self.ax_button_clear = plt.axes([0.89, 0.89, 0.1, 0.05])
+        self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
+        self.button_clear.on_clicked(self.clear_roi)
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        plt.show()
+        self.selnewestroi()
+
+    def toggle_roi(self, event):
+        if self.roi_mode == True:
+            fig, ax = plt.subplots()
+            self.button_toggle.label.set_text('Edit ROI')
+            if len(self.roi_points) > 2:
+                nrois = len(list(self.roilist.keys()))
+                for i in range(len(self.roi_points)):
+                    self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
+                newroi = highlight_roi(self.pixmatrix, self.roi_points)
+                # transpose newroi
+                #newroi = np.transpose(newroi)
+                self.roilist[str('roi'+str(nrois+1))] = newroi
+                cax = ax.imshow(newroi, cmap='viridis')
+                # add colorbar to the plot
+                cbar = fig.colorbar(cax, ax=ax)
+
+                plt.show()
+                self.roiselgui['values'] = list(self.roilist.keys())
+                self.roi_points.clear()
+            self.roi_mode = False
+            print(len(self.roilist))
+        else:
+            self.button_toggle.label.set_text('Save ROI')
+            self.roi_points.clear()
+            self.clear_roi_lines()
+            self.roi_mode = True
+            plt.draw()
+
+    def clear_roi(self, event):
+        self.clear_roi_points()
+        self.clear_roi_lines()
+        plt.draw()
+            
+    def on_click(self, event):
+        if self.roi_mode and event.inaxes == self.ax:
+            x, y = event.xdata, event.ydata
+            self.roi_points.append((x, y))
+            point_plot, = self.ax.plot(x, y, 'ro')
+            self.roi_lines.append(point_plot)
+            if len(self.roi_points) > 1:
+                line_plot, = self.ax.plot([self.roi_points[-2][0], x],
+                                            [self.roi_points[-2][1], y], 'r-')
+                self.roi_lines.append(line_plot)
+            plt.draw()
+
+    def clear_roi_points(self):
+        self.roi_points.clear()
+
+    def clear_roi_lines(self):
+        for line in self.roi_lines:
+            line.remove()
+        self.roi_lines.clear()
+    
+    def plotroi(self, fontsize=12):
+        # get selection of self.roiselgui
+        roi = self.roilist[self.roiselgui.get()]
+        fig, ax = plt.subplots()
+        cax = ax.imshow(roi, cmap='viridis')
+        cbar = fig.colorbar(cax, ax=ax)
+        cbar.set_label('ROI', fontsize=fontsize)
+        cbar.ax.tick_params(labelsize=fontsize)
+        ax.set_title('Region of Interest')
+        ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
+        ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+        plt.show()
+    
+    def delete_roi(self):
+        if self.roiselgui.get() != '':
+            del self.roilist[self.roiselgui.get()]
+            self.roiselgui['values'] = list(self.roilist.keys())
+            self.selnewestroi()
+            plt.show()
+        else:
+            pass
+    
+    def selnewestroi(self):
+        if len(self.roilist) > 0:
+            self.roiselgui.set(list(self.roilist.keys())[-1])
+        else:
+            self.roiselgui.set('')
+
+# highlight_roi function from deflib1
+#roi = region of interest, returns a matrix with 1s in the region of interest and NaNs elsewhere
+def highlight_roi(Mat, points):
+    Mat = np.asarray(Mat)
+    # Create a copy of the matrix initialized with NaN
+    result = np.full_like(Mat, np.nan, dtype=float)
+    # Get grid of all pixel coordinates in the matrix
+    y, x = np.meshgrid(np.arange(Mat.shape[1]), np.arange(Mat.shape[0]))
+    points_grid = np.vstack((x.ravel(), y.ravel())).T
+    # Create a Path object from the points (closed polygon)
+    polygon_path = Path(points)
+    # Find which points are inside the polygon
+    inside_mask = polygon_path.contains_points(points_grid)
+    inside_mask = inside_mask.reshape(Mat.shape)
+    # Set inside points to 1, leaving the rest as NaN
+    result[inside_mask] = 1
+    return np.transpose(result)
+
+class NanocrystalKinetics:
+    def __init__(self, image_series):
+        """
+        Initialize the class with a series of grayscale images.
+        :param image_series: List or NumPy array of 2D grayscale images.
+        """
+        self.image_series = image_series
+        self.kinetics_data = None
+
+    def compute_kinetics1(self, threshold=80):
+        """
+        Compute the kinetics by measuring the total area of the nanocrystals above a threshold.
+        :param threshold: Intensity threshold to binarize images.
+        :return: NumPy array with kinetics data over time.
+        """
+        self.threshold = threshold
+        kinetics = []
+        
+        for img in self.image_series:
+            # Ensure image is in uint8 format
+            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img
+            
+            # Apply thresholding to segment nanocrystals
+            _, binary_img = cv2.threshold(img_uint8, threshold, 255, cv2.THRESH_BINARY)
+            
+            # Compute the total area of detected nanocrystals
+            area = np.sum(binary_img > 0)
+            kinetics.append(area)
+        
+        self.kinetics_data = np.array(kinetics)
+        return self.kinetics_data
+
+    def plot_kinetics(self):
+        """
+        Plot the kinetics data.
+        """
+        if self.kinetics_data is None:
+            raise ValueError("Kinetics data not computed. Run compute_kinetics() first.")
+        
+        plt.figure(figsize=(8, 5))
+        plt.plot(self.kinetics_data, marker='o', linestyle='-')
+        plt.xlabel("Time (frames)")
+        plt.ylabel("Total Nanocrystal Area")
+        plt.title("Nanocrystal Growth/Dissolution Kinetics")
+        plt.grid()
+        plt.show()
+
+# Example usage NanocrystalKinetics
+# image_series = [np.random.randint(0, 255, (100, 100), dtype=np.uint8) for _ in range(10)]
+# kinetics_analyzer = NanocrystalKinetics(image_series)
+# kinetics_data = kinetics_analyzer.compute_kinetics(threshold=100)
+# kinetics_analyzer.plot_kinetics()
