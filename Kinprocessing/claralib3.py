@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
 from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class imageprocessor():
     def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
