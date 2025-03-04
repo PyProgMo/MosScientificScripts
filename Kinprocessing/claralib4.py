@@ -44,8 +44,8 @@ class imageprocessor():
         self.area.grid(row=0, column=3)
 
     def plotimage(self):
-        fig, ax = plt.subplots()
-        cim = ax.imshow(self.imagedata, cmap='viridis')
+        self.fig, self.ax = plt.subplots()
+        cim = self.ax.imshow(self.imagedata, cmap='viridis')
         '''
         fig.colorbar()
         # Get current ticks
@@ -69,8 +69,7 @@ class imageprocessor():
         ax.set_ylabel('Y (scaled)')
         '''
         # Show the plot
-        plt.tight_layout()  # Adjust layout to avoid overlapping
-        plt.show()
+        self.fig.show()
     
 # loadclaraimage function from deflib1
 def loadclaraimage(file, metadata=False):
@@ -253,10 +252,8 @@ class clarakinetics():
 
         # add close event
         self.fig.canvas.mpl_connect('close_event', lambda event: self.close())
-
         # show the plot
-        plt.tight_layout()
-        plt.show()
+        self.fig.show()
     
     def updateimage(self):
         self.updimglabel()
@@ -268,26 +265,26 @@ class clarakinetics():
 
     def nextimage(self):
         self.plotimageN += 1
-        if self.plotimageN >= len(self.cimages):
+        if self.plotimageN >= len(self.pltimg):
             self.plotimageN = 0
         self.updateimage()
     
     def nextprocimage(self):
         self.plotprocimageN += 1
-        if self.plotprocimageN >= len(self.procnextimage):
+        if self.plotprocimageN >= len(self.procpltimg):
             self.plotprocimageN = 0
         self.updateprocimage()
 
     def previmage(self):
         self.plotimageN -= 1
         if self.plotimageN < 0:
-            self.plotimageN = len(self.cimages)-1
+            self.plotimageN = len(self.pltimg)-1
         self.updateimage()
     
     def prevprocimage(self):
         self.plotprocimageN -= 1
         if self.plotprocimageN < 0:
-            self.plotprocimageN = len(self.procnextimage)-1
+            self.plotprocimageN = len(self.procpltimg)-1
         self.updateprocimage()
 
     def updloaddir(self):
@@ -322,6 +319,9 @@ class clarakinetics():
     
     def close(self):
         self.plotexists = False
+    
+    def procclose(self):
+        self.plotprocexists = False
     
     def buildroiframe(self, notebook, row=0):
         self.roilist = {}
@@ -381,6 +381,8 @@ class clarakinetics():
         # build GUI according to colormap to plot the imageseries
 
     def buildprocframe(self, notebook, row=0):
+        self.procimages = {}
+        self.procnextimage = 0
         # build a frame to plot the processed images
         self.plotprocimageN = 0
 
@@ -388,33 +390,44 @@ class clarakinetics():
         self.procplotframe = tk.Frame(notebook, border=2, relief='ridge')
         self.procplotframe.grid(row=row, column=0, sticky='nsew')
 
+        # add a Label to the frame
+        self.proclabel = tk.Label(self.procplotframe, text='Processed Kinetic Series')
+        self.proclabel.grid(row=0, column=0)
+
+        # add a combobox to select the Kinetic Series
+        self.procseries = tk.StringVar()
+        self.procseries.set('')
+        self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[str(i) for i in range(len(self.procimages))])
+        self.procseriesselect.grid(row=0, column=1)
+        self.procseriesselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
+
         # all possible colormaps
         self.proccmlabel = tk.Label(self.procplotframe, text='Colormap:')
-        self.proccmlabel.grid(row=0, column=0)
+        self.proccmlabel.grid(row=1, column=0)
         self.proccmselect = ttk.Combobox(self.procplotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
         self.proccmselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
-        self.proccmselect.grid(row=0, column=1)
+        self.proccmselect.grid(row=1, column=1)
         # add a button to plot the image
         self.plotprocbutton = tk.Button(self.procplotframe, text='Plot Image N', command=self.plotprocimage)
-        self.plotprocbutton.grid(row=0, column=2)
+        self.plotprocbutton.grid(row=1, column=2)
 
         # add selectbox to select the image to plot
         self.procimageN = tk.StringVar()
         self.procimageN.set('0')
         self.procimageNlabel = tk.Label(self.procplotframe, text='Image:')
-        self.procimageNlabel.grid(row=0, column=3)
+        self.procimageNlabel.grid(row=1, column=3)
         self.procimageNselect = ttk.Combobox(self.procplotframe, textvariable=self.procimageN, values=[str(i) for i in range(len(self.cimages))])
         self.procimageNselect.bind('<<ComboboxSelected>>', lambda event: self.procimageNselecttoN())
-        self.procimageNselect.grid(row=0, column=4)
+        self.procimageNselect.grid(row=1, column=4)
 
         # add 2 buttons to switch in the kinetic series
         self.prevprocbutton = tk.Button(self.procplotframe, text='Previous', command=self.prevprocimage)
-        self.prevprocbutton.grid(row=1, column=0)
+        self.prevprocbutton.grid(row=2, column=0)
         self.nextprocbutton = tk.Button(self.procplotframe, text='Next', command=self.nextprocimage)
-        self.nextprocbutton.grid(row=1, column=2)
+        self.nextprocbutton.grid(row=2, column=2)
         # print which N image is being displayed
         self.procimlabel = tk.Label(self.procplotframe, text='Image: '+str(self.plotprocimageN))
-        self.procimlabel.grid(row=1, column=3)
+        self.procimlabel.grid(row=2, column=1)
     
     def procimageNselecttoN(self):
         self.plotprocimageN = int(self.procimageN.get())
@@ -427,10 +440,10 @@ class clarakinetics():
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
-            self.proccim = self.ax.imshow(self.procpltimg, cmap=self.colormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.colormap.get())
             # delete the colorbar and create a new one
             self.proccbar.remove()
-            self.proccbar = self.fig.colorbar(self.proccim, ax=self.ax)
+            self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
         
         else:
             # create a new plot
@@ -439,6 +452,8 @@ class clarakinetics():
             self.procplotexists = True
             # add colorbar
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
+            # connect the close event
+            self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose())
 
         # set proccmat to gryscale
         self.procax.set_title(self.cfnames[self.plotprocimageN])
@@ -449,14 +464,14 @@ class clarakinetics():
 
         # add close event
         self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose()) 
-
+        # tight layout
+        self.procfig.tight_layout()
         # show the plot
-        plt.tight_layout()
-        plt.show()
-        
+        self.procfig.show()
+
     def updateprocimage(self):
         self.updprocimglabel()
-        self.plotprocbutton()
+        self.plotprocimage()
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
@@ -676,7 +691,7 @@ class Roihandler():
         self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
         self.button_clear.on_clicked(self.clear_roi)
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-        plt.show()
+        self.fig.show()
         self.selnewestroi()
 
     def toggle_roi(self, event):
@@ -735,22 +750,22 @@ class Roihandler():
     def plotroi(self, fontsize=12):
         # get selection of self.roiselgui
         roi = self.roilist[self.roiselgui.get()]
-        fig, ax = plt.subplots()
-        cax = ax.imshow(roi, cmap='viridis')
-        cbar = fig.colorbar(cax, ax=ax)
+        self.fig, self.ax = plt.subplots()
+        cax = self.ax.imshow(roi, cmap='viridis')
+        cbar = self.fig.colorbar(cax, ax=self.ax)
         cbar.set_label('ROI', fontsize=fontsize)
         cbar.ax.tick_params(labelsize=fontsize)
-        ax.set_title('Region of Interest')
-        ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
-        ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
-        plt.show()
-    
+        self.ax.set_title('Region of Interest')
+        self.ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
+        self.ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+        self.fig.canvas.draw()
+
     def delete_roi(self):
         if self.roiselgui.get() != '':
             del self.roilist[self.roiselgui.get()]
             self.roiselgui['values'] = list(self.roilist.keys())
             self.selnewestroi()
-            plt.show()
+            self.fig.canvas.draw()
         else:
             pass
     
@@ -817,13 +832,15 @@ class NanocrystalKinetics:
         if self.kinetics_data is None:
             raise ValueError("Kinetics data not computed. Run compute_kinetics() first.")
         
-        plt.figure(figsize=(8, 5))
-        plt.plot(self.kinetics_data, marker='o', linestyle='-')
-        plt.xlabel("Time (frames)")
-        plt.ylabel("Total Nanocrystal Area")
-        plt.title("Nanocrystal Growth/Dissolution Kinetics")
-        plt.grid()
-        plt.show()
+        # create a plot
+        self.kinfig, self.kinax = plt.subplots(figsize=(8, 5))
+        self.kinax.plot(self.kinetics_data, marker='o', linestyle='-')
+        self.kinax.set_title('Nanocrystal Kinetics')
+        self.kinax.set_xlabel('Time (frames)')
+        self.kinax.set_ylabel('Degradation')
+        self.kinax.grid(True)
+        self.kinfig.tight_layout()
+        self.kinfig.show()
 
 # Example usage NanocrystalKinetics
 # image_series = [np.random.randint(0, 255, (100, 100), dtype=np.uint8) for _ in range(10)]
@@ -841,7 +858,6 @@ class PlotManager:
         self.image = self.ax.imshow(self.data, cmap="viridis")
         self.ax.set_title(self.title)
         self.figure.canvas.manager.set_window_title(self.title)
-        plt.show(block=False)  # Non-blocking window
 
     def update_plot(self, new_data):
         """Updates the plot with new data."""

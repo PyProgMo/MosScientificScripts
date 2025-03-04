@@ -100,8 +100,11 @@ class ClaraApp:
 
         # add new notebook tab for the clara kinetics processing
         self.nodeframes["Clara Kinetics"] = ttk.Frame(self.notebook)
+        # make the clara kinetics processing frame expandible and fit to windowsize
+        self.nodeframes["Clara Kinetics"].pack(fill="both", expand=True)
+        # add the clara kinetics processing frame to the notebook
         self.notebook.add(self.nodeframes["Clara Kinetics"], text="Clara Kinetics")
-        kin = cl.clarakinetics(self.nodeframes["Clara Kinetics"], os.path.dirname(f), self.dx, self.dy)
+        kin = cl.clarakinetics(self.nodeframes["Clara Kinetics"], d, self.dx, self.dy)
 
         # init the clara kinetics processing
         #self.roisetup()
