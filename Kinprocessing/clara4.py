@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from matplotlib.ticker import MaxNLocator
 # add code to process the selected files or directory
-import claralib3 as cl
-import importlib
+import claralib4 as cl
 
 def select_directory(root, close=True):
     """
