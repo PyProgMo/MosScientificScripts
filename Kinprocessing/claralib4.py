@@ -831,73 +831,44 @@ class NanocrystalKinetics:
 # kinetics_data = kinetics_analyzer.compute_kinetics(threshold=100)
 # kinetics_analyzer.plot_kinetics()
 
-import tkinter as tk
-import numpy as np
-import matplotlib.pyplot as plt
-
 class PlotManager:
-    """Manages individual plots in separate Matplotlib windows."""
-
+    """Manages an individual plot in a separate Matplotlib window."""
+    
     def __init__(self, data, title):
-        self.data = data  # Store initial data
+        self.data = data
         self.title = title
-        self.figure, self.ax = plt.subplots()  # Create a new figure
-        self.image = self.ax.imshow(self.data, cmap="viridis")  # Plot imshow
-        self.ax.set_title(self.title)  # Set title
-        self.figure.canvas.manager.set_window_title(self.title)  # Set window title
-        plt.show(block=False)  # Show non-blocking window
+        self.figure, self.ax = plt.subplots()
+        self.image = self.ax.imshow(self.data, cmap="viridis")
+        self.ax.set_title(self.title)
+        self.figure.canvas.manager.set_window_title(self.title)
+        plt.show(block=False)  # Non-blocking window
 
     def update_plot(self, new_data):
-        """Update the plot with new data."""
+        """Updates the plot with new data."""
         self.data = new_data
-        self.image.set_data(self.data)  # Update imshow data
-        self.ax.set_title("Updated " + self.title)  # Change title
-        self.figure.canvas.draw()  # Redraw figure
+        self.image.set_data(self.data)
+        self.ax.set_title("Updated " + self.title)
+        self.figure.canvas.draw()
 
-def plot_2x2():
-    """Creates a new 2x2 plot window."""
-    global plot1
-    data = np.array([[1, 2], [3, 4]])  # Example 2x2 array
-    plot1 = PlotManager(data, "Plot 2x2")  # Store instance
+class PlotController:
+    """Manages multiple plot instances and stores them in a dictionary."""
+    
+    def __init__(self):
+        self.plots = {}  # Dictionary to store plot instances
 
-def plot_3x3():
-    """Creates a new 3x3 plot window."""
-    global plot2
-    data = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])  # Example 3x3 array
-    plot2 = PlotManager(data, "Plot 3x3")  # Store instance
+    def create_plot(self, name, data):
+        """Creates a new plot with a given name and stores it in the dictionary."""
+        if name in self.plots:
+            print(f"Plot '{name}' already exists!")
+        else:
+            self.plots[name] = PlotManager(data, name)  # Store plot in dictionary
+            print(f"Created plot: {name}")
 
-def modify_plot1():
-    """Modify Plot 1 separately."""
-    if plot1:
-        new_data = np.random.rand(2, 2) * 10  # New random 2x2 data
-        plot1.update_plot(new_data)
-
-def modify_plot2():
-    """Modify Plot 2 separately."""
-    if plot2:
-        new_data = np.random.rand(3, 3) * 10  # New random 3x3 data
-        plot2.update_plot(new_data)
-
-# Tkinter setup
-root = tk.Tk()
-root.geometry("300x300")
-root.title("Tkinter Plot Manager")
-
-# Buttons to create new plot windows
-btn1 = tk.Button(root, text="Open Plot 2x2", command=plot_2x2)
-btn1.pack(pady=10)
-
-btn2 = tk.Button(root, text="Open Plot 3x3", command=plot_3x3)
-btn2.pack(pady=10)
-
-# Buttons to modify separate plots
-btn3 = tk.Button(root, text="Modify Plot 1", command=modify_plot1)
-btn3.pack(pady=10)
-
-btn4 = tk.Button(root, text="Modify Plot 2", command=modify_plot2)
-btn4.pack(pady=10)
-
-plot1 = None  # Store plot instances globally
-plot2 = None
-
-root.mainloop()
+    def modify_plot(self, name):
+        """Modifies an existing plot by updating its data with random values."""
+        if name in self.plots:
+            new_data = np.random.rand(*self.plots[name].data.shape) * 10  # Generate random data of the same shape
+            self.plots[name].update_plot(new_data)
+            print(f"Modified plot: {name}")
+        else:
+            print(f"Plot '{name}' does not exist!")

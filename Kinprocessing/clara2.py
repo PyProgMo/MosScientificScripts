@@ -124,7 +124,6 @@ class ClaraApp:
         
         self.roihandler = cl.Roihandler()
 
-
     def on_closing(self):
         try:
             
