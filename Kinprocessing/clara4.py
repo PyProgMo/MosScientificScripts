@@ -96,13 +96,13 @@ class ClaraApp:
         self.dy = 0.0568*2#0.0568
 
         # create clara processing frame
-        self.imp = cl.imageprocessor(self.nodeframes["Clara1"], cl.loadclaraimage, None, self.dx, self.dy, f)
+        self.imp = cl.imageprocessor(self.nodeframes["Clara1"], f, cl.loadclaraimage, None, self.dx, self.dy)
 
         # add new notebook tab for the clara kinetics processing
         self.nodeframes["Clara Kinetics"] = ttk.Frame(self.notebook)
         # make the clara kinetics processing frame expandible and fit to windowsize
         self.nodeframes["Clara Kinetics"].pack(fill="both", expand=True)
-        # add the clara kinetics processing frame to the notebook
+        
         self.notebook.add(self.nodeframes["Clara Kinetics"], text="Clara Kinetics")
         kin = cl.clarakinetics(self.nodeframes["Clara Kinetics"], d, self.dx, self.dy)
 
@@ -127,7 +127,8 @@ class ClaraApp:
         self.roihandler = cl.Roihandler()
 
     def on_closing(self):
-        try: 
+        try:
+            
             self.kin.close()
         except:
             pass

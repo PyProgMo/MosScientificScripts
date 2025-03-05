@@ -298,7 +298,7 @@ class clarakinetics():
     
     def nextprocimage(self):
         self.plotprocimageN += 1
-        if self.plotprocimageN >= len(self.procpltimg):
+        if self.plotprocimageN >= len(self.procimages[self.procseries.get()]):
             self.plotprocimageN = 0
         self.updateprocimage()
 
@@ -311,7 +311,7 @@ class clarakinetics():
     def prevprocimage(self):
         self.plotprocimageN -= 1
         if self.plotprocimageN < 0:
-            self.plotprocimageN = len(self.procpltimg)-1
+            self.plotprocimageN = len(self.procimages[self.procseries.get()])-1
         self.updateprocimage()
 
     def updloaddir(self):
@@ -377,21 +377,6 @@ class clarakinetics():
         self.multiroibutton = tk.Button(self.roiframe, text='Multiply ROI to Images', command=self.multiroi2imagedata)
         self.multiroibutton.grid(row=0, column=5)
     
-    '''
-    def buildprocframe(self, notebook, row=0):
-        # store processed image series in a dict
-        self.procimages = {}
-
-        self.procframe = tk.Frame(notebook, border=2, relief='ridge')
-        self.procframe.grid(row=row, column=0, sticky='nsew')
-        self.proclabel = tk.Label(self.roiframe, text='Processed Images')
-        self.proclabel.grid(row=0, column=0, sticky='w')
-
-        # add a combobox to select the processed image
-        self.procimage = tk.StringVar()
-        self.procimage.set('0') '''
-
-    
     def multiroi2imagedata(self):
         roiname = self.roiselgui.get()
         roi = self.roilist[self.roiselgui.get()]
@@ -402,7 +387,7 @@ class clarakinetics():
         for i in range(len(self.procimages[seriesname])):
             for j in range(len(self.procimages[seriesname][i])):
                 for k in range(len(self.procimages[seriesname][i][j])):
-                    if roi[j][k] == 0:
+                    if np.isnan(roi[j][k]) == True:
                         self.procimages[seriesname][i][j][k] = np.nan
 
         # update the entries in procseriesselect (values = self.procimages)
@@ -441,14 +426,14 @@ class clarakinetics():
         self.proccmselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
         self.proccmselect.grid(row=1, column=1)
         # add a button to plot the image
-        self.plotprocbutton = tk.Button(self.procplotframe, text='Plot Image N', command=self.plotprocimage)
-        self.plotprocbutton.grid(row=1, column=2)
+        self.plotprocbutton = tk.Button(self.procplotframe, text='Plot Processed Image N', command=self.plotprocimage)
+        self.plotprocbutton.grid(row=1, column=3)
 
         # add selectbox to select the image to plot
         self.procimageN = tk.StringVar()
         self.procimageN.set('0')
         self.procimageNlabel = tk.Label(self.procplotframe, text='Image:')
-        self.procimageNlabel.grid(row=1, column=3)
+        self.procimageNlabel.grid(row=1, column=4)
         self.procimageNselect = ttk.Combobox(self.procplotframe, textvariable=self.procimageN, values=[str(i) for i in range(len(self.cimages))])
         self.procimageNselect.bind('<<ComboboxSelected>>', lambda event: self.procimageNselecttoN())
         self.procimageNselect.grid(row=1, column=4)
@@ -467,8 +452,14 @@ class clarakinetics():
         self.plotprocimage()        
 
     def plotprocimage(self):
-        # update colormap
-        self.procpltimg = np.asarray(self.cimages[self.plotprocimageN].imagedata)
+        print('len procimages: ', len(self.procimages))
+        # check len of self.procimages
+        if len(self.procimages) == 0:
+            # update procpltimg with cimages
+            self.procpltimg = np.asarray(self.cimages[self.plotprocimageN].imagedata)
+        else:
+            # update procpltimg with the selected series
+            self.procpltimg = np.asarray(self.procimages[self.procseries.get()][self.plotprocimageN])
 
         # if plot already exists:
         if self.procplotexists:
