@@ -151,6 +151,8 @@ class clarakinetics():
         self.plotimageN = 0
         self.colormap = tk.StringVar()
         self.colormap.set('gray')
+        self.proccolormap = tk.StringVar()
+        self.proccolormap.set('gray')
         self.buildnotebook()
     
     def buildnotebook(self):
@@ -189,7 +191,6 @@ class clarakinetics():
         # add a selectbox to select the colormap
         self.colormaplabel = tk.Label(self.implotframe, text='Colormap:')
         self.colormaplabel.grid(row=0, column=0)
-        # tk.Listbox(self.implotframe, self.colormap, *self.allcmlist)
         self.colormapselect = ttk.Combobox(self.implotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
         # bind the selectbox to the function plotimage
         self.colormapselect.bind('<<ComboboxSelected>>', lambda event: self.plotimage())
@@ -404,7 +405,7 @@ class clarakinetics():
         # all possible colormaps
         self.proccmlabel = tk.Label(self.procplotframe, text='Colormap:')
         self.proccmlabel.grid(row=1, column=0)
-        self.proccmselect = ttk.Combobox(self.procplotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
+        self.proccmselect = ttk.Combobox(self.procplotframe, textvariable=self.proccolormap, values=self.allcmlist, width=10)
         self.proccmselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
         self.proccmselect.grid(row=1, column=1)
         # add a button to plot the image
@@ -440,7 +441,7 @@ class clarakinetics():
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.colormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             # delete the colorbar and create a new one
             self.proccbar.remove()
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
@@ -448,7 +449,7 @@ class clarakinetics():
         else:
             # create a new plot
             self.procfig, self.procax = plt.subplots(figsize=(5, 5))
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.colormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             self.procplotexists = True
             # add colorbar
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
