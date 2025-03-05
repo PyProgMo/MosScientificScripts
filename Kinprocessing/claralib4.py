@@ -11,7 +11,7 @@ from matplotlib.path import Path
 import copy
 
 class imageprocessor():
-    def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
+    def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
         self.Notebook = Notebook
         self.imagefile = imagefile
         self.loadfunct = loadfunct
@@ -19,8 +19,35 @@ class imageprocessor():
         self.dx = dx
         self.dy = dy
         self.g2dpopt = None
-        self.buildnotebook()
+        self.buildload()
     
+    def buildload(self):
+        # build a notebook to load the files
+        self.load_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
+        self.load_frame.grid(row=0, column=0, sticky='nsew')
+        # add a label to the frame
+        self.load_label = tk.Label(self.load_frame, text='Load Image')
+        self.load_label.grid(row=0, column=0)
+        # show the filename
+        self.loadfnvar = tk.StringVar()
+        self.loadfnvar.set(self.imagefile)
+        self.load_filename = tk.Label(self.load_frame, textvariable=self.loadfnvar)
+        self.load_filename.grid(row=0, column=1)
+        # add a button to open a dialog to select the file
+        self.load_button = tk.Button(self.load_frame, text='Browse', command=self.browsefile)
+        self.load_button.grid(row=0, column=2)
+        # add a button to load the file
+        self.load_button = tk.Button(self.load_frame, text='Load', command=self.loadfile)
+        self.load_button.grid(row=0, column=3)
+
+    def browsefile(self):
+        self.imagefile = tk.filedialog.askopenfilename()
+        self.loadfnvar.set(self.imagefile)
+
+    def loadfile(self):
+        self.imagedata = self.loadfunct(self.imagefile)
+        self.buildnotebook()
+
     def fit2dgaussian(self):
         self.g2dpopt = fit_gaussian_2d(self.imagedata, self.dx, self.dy)
     
@@ -144,13 +171,14 @@ class clarakinetics():
         self.dir = dir
         self.dx = dx
         self.dy = dy
-        self.files = getcimages(self.dir)
         self.plotexists = False
         self.procplotexists = False
         self.plotprocimageN = 0
         self.plotimageN = 0
         self.colormap = tk.StringVar()
         self.colormap.set('gray')
+        self.proccolormap = tk.StringVar()
+        self.proccolormap.set('gray')
         self.buildnotebook()
     
     def buildnotebook(self):
@@ -189,7 +217,6 @@ class clarakinetics():
         # add a selectbox to select the colormap
         self.colormaplabel = tk.Label(self.implotframe, text='Colormap:')
         self.colormaplabel.grid(row=0, column=0)
-        # tk.Listbox(self.implotframe, self.colormap, *self.allcmlist)
         self.colormapselect = ttk.Combobox(self.implotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
         # bind the selectbox to the function plotimage
         self.colormapselect.bind('<<ComboboxSelected>>', lambda event: self.plotimage())
@@ -404,7 +431,7 @@ class clarakinetics():
         # all possible colormaps
         self.proccmlabel = tk.Label(self.procplotframe, text='Colormap:')
         self.proccmlabel.grid(row=1, column=0)
-        self.proccmselect = ttk.Combobox(self.procplotframe, textvariable=self.colormap, values=self.allcmlist, width=10)
+        self.proccmselect = ttk.Combobox(self.procplotframe, textvariable=self.proccolormap, values=self.allcmlist, width=10)
         self.proccmselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
         self.proccmselect.grid(row=1, column=1)
         # add a button to plot the image
@@ -440,7 +467,7 @@ class clarakinetics():
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.colormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             # delete the colorbar and create a new one
             self.proccbar.remove()
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
@@ -448,7 +475,7 @@ class clarakinetics():
         else:
             # create a new plot
             self.procfig, self.procax = plt.subplots(figsize=(5, 5))
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.colormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             self.procplotexists = True
             # add colorbar
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
