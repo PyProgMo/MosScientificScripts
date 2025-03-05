@@ -374,7 +374,7 @@ class clarakinetics():
         self.plotroibutton = tk.Button(self.roiframe, text='Plot ROI', command=self.roihand.plotroi)
         self.plotroibutton.grid(row=0, column=4)
         # add a button to mulitply ROI with image data
-        self.multiroibutton = tk.Button(self.roiframe, text='Multi ROI to Images', command=self.multiroi2imagedata)
+        self.multiroibutton = tk.Button(self.roiframe, text='Multiply ROI to Images', command=self.multiroi2imagedata)
         self.multiroibutton.grid(row=0, column=5)
     
     '''
@@ -402,10 +402,16 @@ class clarakinetics():
         for i in range(len(self.procimages[seriesname])):
             for j in range(len(self.procimages[seriesname][i])):
                 for k in range(len(self.procimages[seriesname][i][j])):
-                    if roi[i][j][k] == 0:
+                    if roi[j][k] == 0:
                         self.procimages[seriesname][i][j][k] = np.nan
 
+        # update the entries in procseriesselect (values = self.procimages)
+        self.procseriesselect['values'] = list(self.procimages.keys())
+        self.procseriesselect.set(seriesname)
         # build GUI according to colormap to plot the imageseries
+        print('Multiplied ROI to images')
+        print('Stored in', seriesname)
+        print('There are', len(list(self.procimages.keys())), 'series')
 
     def buildprocframe(self, notebook, row=0):
         self.procimages = {}
@@ -424,7 +430,7 @@ class clarakinetics():
         # add a combobox to select the Kinetic Series
         self.procseries = tk.StringVar()
         self.procseries.set('')
-        self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[str(i) for i in range(len(self.procimages))])
+        self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[list(self.procimages.keys())])
         self.procseriesselect.grid(row=0, column=1)
         self.procseriesselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
 
@@ -552,9 +558,6 @@ class clarakinetics():
         self.Nckin.plot_kinetics()
         plt.savefig(filename)
 
-    def multiroi2imagedata(self):
-        # get the selected roi
-        roi = self.roilist[self.roiselgui.get()]
 
 class clarafile():
     def __init__(self, file, dx, dy):
@@ -786,6 +789,7 @@ class Roihandler():
         self.ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
         self.ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
         self.fig.canvas.draw()
+        self.fig.show()
 
     def delete_roi(self):
         if self.roiselgui.get() != '':
