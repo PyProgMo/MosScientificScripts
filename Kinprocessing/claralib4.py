@@ -11,7 +11,7 @@ from matplotlib.path import Path
 import copy
 
 class imageprocessor():
-    def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
+    def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
         self.Notebook = Notebook
         self.imagefile = imagefile
         self.loadfunct = loadfunct
@@ -19,8 +19,35 @@ class imageprocessor():
         self.dx = dx
         self.dy = dy
         self.g2dpopt = None
-        self.buildnotebook()
+        self.buildload()
     
+    def buildload(self):
+        # build a notebook to load the files
+        self.load_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
+        self.load_frame.grid(row=0, column=0, sticky='nsew')
+        # add a label to the frame
+        self.load_label = tk.Label(self.load_frame, text='Load Image')
+        self.load_label.grid(row=0, column=0)
+        # show the filename
+        self.loadfnvar = tk.StringVar()
+        self.loadfnvar.set(self.imagefile)
+        self.load_filename = tk.Label(self.load_frame, textvariable=self.loadfnvar)
+        self.load_filename.grid(row=0, column=1)
+        # add a button to open a dialog to select the file
+        self.load_button = tk.Button(self.load_frame, text='Browse', command=self.browsefile)
+        self.load_button.grid(row=0, column=2)
+        # add a button to load the file
+        self.load_button = tk.Button(self.load_frame, text='Load', command=self.loadfile)
+        self.load_button.grid(row=0, column=3)
+
+    def browsefile(self):
+        self.imagefile = tk.filedialog.askopenfilename()
+        self.loadfnvar.set(self.imagefile)
+
+    def loadfile(self):
+        self.imagedata = self.loadfunct(self.imagefile)
+        self.buildnotebook()
+
     def fit2dgaussian(self):
         self.g2dpopt = fit_gaussian_2d(self.imagedata, self.dx, self.dy)
     
@@ -144,7 +171,6 @@ class clarakinetics():
         self.dir = dir
         self.dx = dx
         self.dy = dy
-        self.files = getcimages(self.dir)
         self.plotexists = False
         self.procplotexists = False
         self.plotprocimageN = 0

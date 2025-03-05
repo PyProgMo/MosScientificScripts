@@ -96,7 +96,7 @@ class ClaraApp:
         self.dy = 0.0568*2#0.0568
 
         # create clara processing frame
-        self.imp = cl.imageprocessor(self.nodeframes["Clara1"], f, cl.loadclaraimage, None, self.dx, self.dy)
+        self.imp = cl.imageprocessor(self.nodeframes["Clara1"], cl.loadclaraimage, None, self.dx, self.dy, f)
 
         # add new notebook tab for the clara kinetics processing
         self.nodeframes["Clara Kinetics"] = ttk.Frame(self.notebook)
