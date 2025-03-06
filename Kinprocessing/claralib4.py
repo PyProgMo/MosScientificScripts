@@ -9,6 +9,7 @@ from tkinter import filedialog
 from matplotlib.widgets import Button
 from matplotlib.path import Path
 import copy
+from datetime import datetime
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -19,6 +20,7 @@ class imageprocessor():
         self.dx = dx
         self.dy = dy
         self.g2dpopt = None
+        self.loadfnvar = tk.StringVar()
         self.buildload()
     
     def buildload(self):
@@ -29,7 +31,6 @@ class imageprocessor():
         self.load_label = tk.Label(self.load_frame, text='Load Image')
         self.load_label.grid(row=0, column=0)
         # show the filename
-        self.loadfnvar = tk.StringVar()
         self.loadfnvar.set(self.imagefile)
         self.load_filename = tk.Label(self.load_frame, textvariable=self.loadfnvar)
         self.load_filename.grid(row=0, column=1)
@@ -176,8 +177,20 @@ class clarakinetics():
         self.plotprocimageN = 0
         self.plotimageN = 0
         self.colormap = tk.StringVar()
-        self.colormap.set('gray')
+        self.dt = tk.StringVar()
+        self.kinparam = tk.StringVar()
+        self.selkinseries = tk.StringVar()
+        self.kinmethod = tk.StringVar()
         self.proccolormap = tk.StringVar()
+        self.sdir = tk.StringVar()
+        self.imageN = tk.StringVar()
+        self.procimageN = tk.StringVar()
+        self.procseries = tk.StringVar()
+        self.procseriesselect = tk.StringVar()
+        self.loadfnvar = tk.StringVar()
+
+        self.dt.set('15')
+        self.colormap.set('gray')
         self.proccolormap.set('gray')
         self.buildnotebook()
     
@@ -187,7 +200,7 @@ class clarakinetics():
         self.kinetics_frame.grid(row=0, column=0, sticky='nsew')
 
         # add entry to select a dir and save on self.sdir
-        self.sdir = tk.StringVar()
+
         self.sdir.set(self.dir)
         self.dirlabel = tk.Label(self.kinetics_frame, text='Directory:')
         self.dirlabel.grid(row=0, column=0, sticky='w')
@@ -226,7 +239,6 @@ class clarakinetics():
         self.plotbutton.grid(row=0, column=2)
 
         # add selectbox to select the image to plot
-        self.imageN = tk.StringVar()
         self.imageN.set('0')
         self.imageNlabel = tk.Label(self.implotframe, text='Image:')
         self.imageNlabel.grid(row=0, column=3)
@@ -251,7 +263,7 @@ class clarakinetics():
         self.plotimage()
 
     def plotimage(self):
-        # update colormap
+        # update the image according to the selected image
         self.pltimg = np.asarray(self.cimages[self.plotimageN].imagedata)
 
         # if plot already exists: 
@@ -298,7 +310,7 @@ class clarakinetics():
     
     def nextprocimage(self):
         self.plotprocimageN += 1
-        if self.plotprocimageN >= len(self.procpltimg):
+        if self.plotprocimageN >= len(self.procimages[self.procseriesselect.get()]):
             self.plotprocimageN = 0
         self.updateprocimage()
 
@@ -311,7 +323,7 @@ class clarakinetics():
     def prevprocimage(self):
         self.plotprocimageN -= 1
         if self.plotprocimageN < 0:
-            self.plotprocimageN = len(self.procpltimg)-1
+            self.plotprocimageN = len(self.procimages[self.procseriesselect.get()])-1
         self.updateprocimage()
 
     def updloaddir(self):
@@ -348,7 +360,7 @@ class clarakinetics():
         self.plotexists = False
     
     def procclose(self):
-        self.plotprocexists = False
+        self.procplotexists = False
     
     def buildroiframe(self, notebook, row=0):
         self.roilist = {}
@@ -390,34 +402,29 @@ class clarakinetics():
         # add a combobox to select the processed image
         self.procimage = tk.StringVar()
         self.procimage.set('0') '''
-
     
     def multiroi2imagedata(self):
-        roiname = self.roiselgui.get()
         roi = self.roilist[self.roiselgui.get()]
-        seriesname = f'{roiname}_series'
+        seriesname = f'{self.roiselgui.get()}_series'
         # copy imageseries and store them in self.procimages
         self.procimages[seriesname] = copy.deepcopy(self.imageseries)
         # apply roi to the imageseries, set to to nan where roi is 0
-        # old multiplication, very slow
+        # old multiplication, very slow        
         '''
         for i in range(len(self.procimages[seriesname])):
             for j in range(len(self.procimages[seriesname][i])):
                 for k in range(len(self.procimages[seriesname][i][j])):
-                    if roi[j][k] == 0:
+                    if np.isnan(roi[j][k]):
                         self.procimages[seriesname][i][j][k] = np.nan
         '''
         # new multiplication, faster (thanks to github copilot for the idea XD)
         for i in range(len(self.procimages[seriesname])):
-            self.procimages[seriesname][i] = np.where(roi == 0, np.nan, self.procimages[seriesname][i])
+            self.procimages[seriesname][i] = np.where(np.isnan(roi), np.nan, self.procimages[seriesname][i])
 
         # update the entries in procseriesselect (values = self.procimages)
-        self.procseriesselect['values'] = list(self.procimages.keys())
+        self.updkinseries()
+        # set the selected series to the new series
         self.procseriesselect.set(seriesname)
-        # build GUI according to colormap to plot the imageseries
-        print('Multiplied ROI to images')
-        print('Stored in', seriesname)
-        print('There are', len(list(self.procimages.keys())), 'series')
 
     def buildprocframe(self, notebook, row=0):
         self.procimages = {}
@@ -434,7 +441,6 @@ class clarakinetics():
         self.proclabel.grid(row=0, column=0)
 
         # add a combobox to select the Kinetic Series
-        self.procseries = tk.StringVar()
         self.procseries.set('')
         self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[list(self.procimages.keys())])
         self.procseriesselect.grid(row=0, column=1)
@@ -447,11 +453,10 @@ class clarakinetics():
         self.proccmselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
         self.proccmselect.grid(row=1, column=1)
         # add a button to plot the image
-        self.plotprocbutton = tk.Button(self.procplotframe, text='Plot Image N', command=self.plotprocimage)
+        self.plotprocbutton = tk.Button(self.procplotframe, text='Plot Processed Image N', command=self.plotprocimage)
         self.plotprocbutton.grid(row=1, column=2)
 
         # add selectbox to select the image to plot
-        self.procimageN = tk.StringVar()
         self.procimageN.set('0')
         self.procimageNlabel = tk.Label(self.procplotframe, text='Image:')
         self.procimageNlabel.grid(row=1, column=3)
@@ -467,15 +472,41 @@ class clarakinetics():
         # print which N image is being displayed
         self.procimlabel = tk.Label(self.procplotframe, text='Image: '+str(self.plotprocimageN))
         self.procimlabel.grid(row=2, column=1)
+
+        # add a button to load or save a series
+        self.savekinbutton = tk.Button(self.procplotframe, text='Save Kinetic Series', command=self.savekinseries)
+        self.savekinbutton.grid(row=2, column=3)
+        self.loadkinbutton = tk.Button(self.procplotframe, text='Load Kinetic Series', command=self.loadkinseries)
+        self.loadkinbutton.grid(row=2, column=4)
+    
+    def savekinseries(self):
+        # ask for a filename
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
+        # save the series to the file
+        np.save(filename, self.procimages[self.procseriesselect.get()])
+    
+    def loadkinseries(self):
+        # ask for a filename
+        filename = tk.filedialog.askopenfilename()
+        # load the series from the file
+        loadedname = 'loaded_'+filename.split('/')[-1].split('.')[0]
+        # add the loaded series to the keys of procseriesselect
+        self.procimages[loadedname] = np.load(filename)
+        # update the entries in procseriesselect (values = self.procimages)
+        self.updkinseries()
+        # set the selected series to the new series
+        self.procseriesselect.set(loadedname)
+        
     
     def procimageNselecttoN(self):
         self.plotprocimageN = int(self.procimageN.get())
-        self.plotprocimage()        
+        self.plotprocimage()
 
     def plotprocimage(self):
-        # update colormap
-        self.procpltimg = np.asarray(self.cimages[self.plotprocimageN].imagedata)
-
+        # set procpltimg to np.nan on all pixels
+        self.procpltimg = np.full_like(self.cimages[0].imagedata, np.nan) 
+        # set the image
+        self.procpltimg = np.asarray(self.procimages[self.procseriesselect.get()][self.plotprocimageN])
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
@@ -491,8 +522,6 @@ class clarakinetics():
             self.procplotexists = True
             # add colorbar
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
-            # connect the close event
-            self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose())
 
         # set proccmat to gryscale
         self.procax.set_title(self.cfnames[self.plotprocimageN])
@@ -503,14 +532,18 @@ class clarakinetics():
 
         # add close event
         self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose()) 
-        # tight layout
-        self.procfig.tight_layout()
         # show the plot
         self.procfig.show()
 
     def updateprocimage(self):
         self.updprocimglabel()
         self.plotprocimage()
+    
+    def updkinseries(self):
+        #self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[list(self.procimages.keys())])
+        # update the entries of the combobox
+        self.procseriesselect['values'] = list(self.procimages.keys())
+        self.selkinseriesbox['values'] = list(self.procimages.keys())
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
@@ -521,6 +554,19 @@ class clarakinetics():
         # grid the headline to the first row
         self.kinlabel.grid(row=0, sticky='w')
 
+        # select combobox to select a processed image
+        self.selkinserieslabel = tk.Label(self.kinframe, text='Select series:')
+        self.selkinserieslabel.grid(row=1, column=0)
+        self.selkinseriesbox = ttk.Combobox(self.kinframe, textvariable=self.selkinseries, values=[list(self.procimages.keys())])
+        self.selkinseriesbox.grid(row=1, column=1)
+
+        # add entry for dt (seconds)
+        self.dtlabel = tk.Label(self.kinframe, text='dt (s):')
+        self.dtlabel.grid(row=1, column=2)
+        self.dtentry = tk.Entry(self.kinframe, textvariable=self.dt, width=10)
+        self.dtentry.grid(row=1, column=3)
+
+
         # store image series in self.imageseries
         self.imageseries = []
         for i in range(len(self.cimages)):
@@ -528,34 +574,32 @@ class clarakinetics():
         
         self.kinmethods = ['Thresholding', 'Integration', 'Edge detection']
         self.kinmethodlabel = tk.Label(self.kinframe, text='Select method:')
-        self.kinmethodlabel.grid(row=1, column=0)
+        self.kinmethodlabel.grid(row=2, column=0)
         # select method to compute the kinetics
-        self.kinmethod = tk.StringVar()
         self.kinmethod.set(self.kinmethods[0])
         self.kinmethodselect = ttk.Combobox(self.kinframe, textvariable=self.kinmethod, values=self.kinmethods)
-        self.kinmethodselect.grid(row=1, column=1)
+        self.kinmethodselect.grid(row=2, column=1)
 
         # add a parameter for kinetics processing
         self.kinparamlabel = tk.Label(self.kinframe, text='Parameter:')
-        self.kinparamlabel.grid(row=1, column=2)
-        self.kinparam = tk.StringVar()
+        self.kinparamlabel.grid(row=2, column=2)
         self.kinparam = tk.Entry(self.kinframe, textvariable=self.kinparam, width=10)
-        self.kinparam.grid(row=1, column=3)
+        self.kinparam.grid(row=2, column=3)
         
         # create a new instance of NanocrystalKinetics
         self.Nckin = NanocrystalKinetics(self.imageseries)
         
         # add a button to compute the kinetics
         self.kinbutton = tk.Button(self.kinframe, text='Compute Kinetics', command=lambda: self.Nckin.compute_kinetics1(int(self.kinparam.get())))
-        self.kinbutton.grid(row=1, column=4)
+        self.kinbutton.grid(row=2, column=4)
 
         # add a button to plot the kinetics
         self.plotkinbutton = tk.Button(self.kinframe, text='Plot Kinetics', command=self.Nckin.plot_kinetics)
-        self.plotkinbutton.grid(row=1, column=5)
+        self.plotkinbutton.grid(row=2, column=5)
 
         # export kinetics image to a file
         self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
-        self.exportkinbutton.grid(row=1, column=6)
+        self.exportkinbutton.grid(row=2, column=6)
     
     def exportkinetics(self):
         # ask for a filename
@@ -570,7 +614,11 @@ class clarafile():
         self.fn = file
         self.dx = dx
         self.dy = dy
-        self.imagedata, self.metadata = loadclaraimage(self.fn, True)    
+        self.imagedata, self.metadata = loadclaraimage(self.fn, True)
+        self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
+        self.tint = self.metadata['Exposure Time (secs)']
+        self.z = self.metadata['z']
+        print(self.time, self.tint, self.z)
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
     """
@@ -713,6 +761,7 @@ class Roihandler():
         self.pixmatrix = np.transpose(self.pixmatrix)
 
     def construct(self, pixmatrix, roiselgui):
+        self.roi_mode = True
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
         self.roiselgui = roiselgui
