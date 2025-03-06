@@ -399,11 +399,17 @@ class clarakinetics():
         # copy imageseries and store them in self.procimages
         self.procimages[seriesname] = copy.deepcopy(self.imageseries)
         # apply roi to the imageseries, set to to nan where roi is 0
+        # old multiplication, very slow
+        '''
         for i in range(len(self.procimages[seriesname])):
             for j in range(len(self.procimages[seriesname][i])):
                 for k in range(len(self.procimages[seriesname][i][j])):
                     if roi[j][k] == 0:
                         self.procimages[seriesname][i][j][k] = np.nan
+        '''
+        # new multiplication, faster (thanks to github copilot for the idea XD)
+        for i in range(len(self.procimages[seriesname])):
+            self.procimages[seriesname][i] = np.where(roi == 0, np.nan, self.procimages[seriesname][i])
 
         # update the entries in procseriesselect (values = self.procimages)
         self.procseriesselect['values'] = list(self.procimages.keys())
