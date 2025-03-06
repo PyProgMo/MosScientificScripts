@@ -617,8 +617,6 @@ class clarafile():
         self.imagedata, self.metadata = loadclaraimage(self.fn, True)
         self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
         self.tint = self.metadata['Exposure Time (secs)']
-        self.z = self.metadata['z']
-        print(self.time, self.tint, self.z)
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
     """
