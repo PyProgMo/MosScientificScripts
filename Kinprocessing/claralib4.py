@@ -566,7 +566,6 @@ class clarakinetics():
         self.dtentry = tk.Entry(self.kinframe, textvariable=self.dt, width=10)
         self.dtentry.grid(row=1, column=3)
 
-
         # store image series in self.imageseries
         self.imageseries = []
         for i in range(len(self.cimages)):
