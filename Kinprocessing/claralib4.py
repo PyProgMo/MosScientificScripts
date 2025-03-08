@@ -589,7 +589,7 @@ class clarakinetics():
         self.Nckin = NanocrystalKinetics(self.imageseries)
         
         # add a button to compute the kinetics
-        self.kinbutton = tk.Button(self.kinframe, text='Compute Kinetics', command=lambda: self.Nckin.compute_kinetics1(int(self.kinparam.get())))
+        self.kinbutton = tk.Button(self.kinframe, text='Compute Kinetics', command=lambda: self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get()))
         self.kinbutton.grid(row=2, column=4)
 
         # add a button to plot the kinetics
@@ -602,11 +602,9 @@ class clarakinetics():
     
     def exportkinetics(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.png')
-        # save the kinetics plot to the file
-        self.Nckin.plot_kinetics()
-        plt.savefig(filename)
-
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
+        #np.savetxt(filename, np.column_stack(np.round(self.Nckin.plotxaxis, 16), np.round(self.Nckin.kinetics_data, 16), delimiter=',', header='Time (s), Kinetics'))
+        np.savetxt(filename, np.column_stack((self.Nckin.plotxaxis, self.Nckin.kinetics_data)), delimiter=',', header='Time (s), Kinetics')
 
 class clarafile():
     def __init__(self, file, dx, dy):
@@ -885,15 +883,26 @@ class NanocrystalKinetics:
         self.image_series = image_series
         self.kinetics_data = None
 
-    def compute_kinetics1(self, threshold=80):
+    def compute_kinetics1(self, imgs, dt, method):
         """
         Compute the kinetics by measuring the total area of the nanocrystals above a threshold.
         :param threshold: Intensity threshold to binarize images.
         :return: NumPy array with kinetics data over time.
         """
-        self.threshold = threshold
+        self.dt = dt
+        self.method = method
         kinetics = []
+        self.image_series = imgs
+        for img in self.image_series:
+            # Ensure image is in uint8 format
+            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img
+            
+            # Compute the total area of detected nanocrystals
+            area = np.sum(img_uint8)
+            kinetics.append(area)
         
+        '''
+        old kinetics processing
         for img in self.image_series:
             # Ensure image is in uint8 format
             img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img
@@ -904,6 +913,7 @@ class NanocrystalKinetics:
             # Compute the total area of detected nanocrystals
             area = np.sum(binary_img > 0)
             kinetics.append(area)
+            '''
         
         self.kinetics_data = np.array(kinetics)
         return self.kinetics_data
@@ -914,10 +924,14 @@ class NanocrystalKinetics:
         """
         if self.kinetics_data is None:
             raise ValueError("Kinetics data not computed. Run compute_kinetics() first.")
+
+        # dreate x-axis values according to self.dt
+        self.plotxaxis = np.arange(len(self.kinetics_data)) * self.dt
         
         # create a plot
         self.kinfig, self.kinax = plt.subplots(figsize=(8, 5))
-        self.kinax.plot(self.kinetics_data, marker='o', linestyle='-')
+        #self.kinax.plot(self.kinetics_data, marker='o', linestyle='-') # no x-axis
+        self.kinax.plot(self.plotxaxis, self.kinetics_data, marker='o', linestyle='-')
         self.kinax.set_title('Nanocrystal Kinetics')
         self.kinax.set_xlabel('Time (frames)')
         self.kinax.set_ylabel('Degradation')
