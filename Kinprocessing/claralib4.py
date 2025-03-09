@@ -473,12 +473,22 @@ class clarakinetics():
         self.procimlabel = tk.Label(self.procplotframe, text='Image: '+str(self.plotprocimageN))
         self.procimlabel.grid(row=2, column=1)
 
+        # add a button to export the selected image to a file
+        self.exportprocimbutton = tk.Button(self.procplotframe, text='Export Processed Image', command=self.exportprocimage)
+        self.exportprocimbutton.grid(row=2, column=5)
+
         # add a button to load or save a series
         self.savekinbutton = tk.Button(self.procplotframe, text='Save Kinetic Series', command=self.savekinseries)
         self.savekinbutton.grid(row=2, column=3)
         self.loadkinbutton = tk.Button(self.procplotframe, text='Load Kinetic Series', command=self.loadkinseries)
         self.loadkinbutton.grid(row=2, column=4)
     
+    def exportprocimage(self):
+        # ask for a filename
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
+        # save the image to a csv file
+        np.save(filename, self.procimages[self.procseriesselect.get()][self.plotprocimageN])
+
     def savekinseries(self):
         # ask for a filename
         filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
