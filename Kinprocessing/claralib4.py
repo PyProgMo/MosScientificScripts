@@ -486,14 +486,14 @@ class clarakinetics():
     def exportprocimage(self):
         # ask for a filename
         filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
-        # save the image to a csv file
+        # export the image
         np.save(filename, self.procimages[self.procseriesselect.get()][self.plotprocimageN])
 
     def savekinseries(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv')
         # save the series to the file
-        np.save(filename, self.procimages[self.procseriesselect.get()])
+        np.savetxt(filename, self.procimages[self.procseriesselect.get()], delimiter='\t')
     
     def loadkinseries(self):
         # ask for a filename
@@ -611,10 +611,15 @@ class clarakinetics():
         self.exportkinbutton.grid(row=2, column=6)
     
     def exportkinetics(self):
+        print(self.Nckin.plotxaxis)
+        print(self.Nckin.kinetics_data)
+        list = self.Nckin.plotxaxis.tolist()
+        print(list)
         # ask for a filename
         filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
-        #np.savetxt(filename, np.column_stack(np.round(self.Nckin.plotxaxis, 16), np.round(self.Nckin.kinetics_data, 16), delimiter=',', header='Time (s), Kinetics'))
-        np.savetxt(filename, np.column_stack((self.Nckin.plotxaxis, self.Nckin.kinetics_data)), delimiter=',', header='Time (s), Kinetics')
+        #np.savetxt(filename, np.column_stack(np.round(self.Nckin.plotxaxis, 6), np.round(self.Nckin.kinetics_data, 6), delimiter=';', header='Time (s), Kinetics'))
+        np.savetxt(filename, np.column_stack((np.round(self.Nckin.plotxaxis, 12), np.round(self.Nckin.kinetics_data, 12))), delimiter=';', header='Time (s), Kinetics')
+        #np.savetxt(filename, np.column_stack((self.Nckin.plotxaxis, self.Nckin.kinetics_data)), delimiter=';', header='Time (s); Kinetics', fmt='%.6f', newline='\n', comments='', encoding='utf-8')
 
 class clarafile():
     def __init__(self, file, dx, dy):
