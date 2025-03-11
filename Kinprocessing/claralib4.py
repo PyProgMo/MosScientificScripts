@@ -70,34 +70,6 @@ class imageprocessor():
         self.plotfitbutton.grid(row=0, column=2)
         self.area = tk.Button(self.image_frame, text='Area', command=lambda: area2dgaussian(self.imagefile, self.g2dpopt, np.exp(-2), self.dx, self.dy))
         self.area.grid(row=0, column=3)
-
-    def plotimage(self):
-        self.fig, self.ax = plt.subplots()
-        cim = self.ax.imshow(self.imagedata, cmap='viridis')
-        '''
-        fig.colorbar()
-        # Get current ticks
-        current_xticks = np.arange(self.imagedata.shape[1])
-        current_yticks = np.arange(self.imagedata.shape[0])
-        # Multiply ticks by constants
-        new_xticks = np.multiply(current_xticks, self.dx).round(2)
-        new_yticks = np.multiply(current_yticks, self.dy).round(2)
-        # Set new ticks
-        ax.set_xticks(current_xticks)  # Set the ticks to be at the indices of the current ticks
-        ax.set_yticks(current_yticks)
-        # Set tick labels to the new values
-        ax.set_xticklabels(new_xticks)
-        ax.set_yticklabels(new_yticks)
-        # Set the axis labels auto adjust
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
-
-        # Add axis labels
-        ax.set_xlabel('X (scaled)')
-        ax.set_ylabel('Y (scaled)')
-        '''
-        # Show the plot
-        self.fig.show()
     
 # loadclaraimage function from deflib1
 def loadclaraimage(file, metadata=False):
@@ -301,10 +273,11 @@ class clarakinetics():
     def updateprocimage(self):
         self.updprocimglabel()
         self.plotprocimage()
+        self.selkinseriesbox.set(self.procseriesselect.get())
 
     def nextimage(self):
         self.plotimageN += 1
-        if self.plotimageN >= len(self.pltimg):
+        if self.plotimageN >= len(self.cimages):
             self.plotimageN = 0
         self.updateimage()
     
@@ -317,7 +290,7 @@ class clarakinetics():
     def previmage(self):
         self.plotimageN -= 1
         if self.plotimageN < 0:
-            self.plotimageN = len(self.pltimg)-1
+            self.plotimageN = len(self.cimages)-1
         self.updateimage()
     
     def prevprocimage(self):
@@ -491,9 +464,9 @@ class clarakinetics():
 
     def savekinseries(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv')
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
         # save the series to the file
-        np.savetxt(filename, self.procimages[self.procseriesselect.get()], delimiter='\t')
+        np.save(filename, self.procimages[self.procseriesselect.get()])
     
     def loadkinseries(self):
         # ask for a filename
@@ -571,7 +544,7 @@ class clarakinetics():
         self.selkinseriesbox.grid(row=1, column=1)
 
         # add entry for dt (seconds)
-        self.dtlabel = tk.Label(self.kinframe, text='dt (s):')
+        self.dtlabel = tk.Label(self.kinframe, text='dt (min):')
         self.dtlabel.grid(row=1, column=2)
         self.dtentry = tk.Entry(self.kinframe, textvariable=self.dt, width=10)
         self.dtentry.grid(row=1, column=3)
@@ -611,15 +584,19 @@ class clarakinetics():
         self.exportkinbutton.grid(row=2, column=6)
     
     def exportkinetics(self):
-        print(self.Nckin.plotxaxis)
-        print(self.Nckin.kinetics_data)
+
         list = self.Nckin.plotxaxis.tolist()
-        print(list)
         # ask for a filename
         filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
         #np.savetxt(filename, np.column_stack(np.round(self.Nckin.plotxaxis, 6), np.round(self.Nckin.kinetics_data, 6), delimiter=';', header='Time (s), Kinetics'))
         np.savetxt(filename, np.column_stack((np.round(self.Nckin.plotxaxis, 12), np.round(self.Nckin.kinetics_data, 12))), delimiter=';', header='Time (s), Kinetics')
         #np.savetxt(filename, np.column_stack((self.Nckin.plotxaxis, self.Nckin.kinetics_data)), delimiter=';', header='Time (s); Kinetics', fmt='%.6f', newline='\n', comments='', encoding='utf-8')
+
+        with open(filename, 'w') as f:
+            f.write('Time (s); Kinetics\n')
+            for i in range(len(self.Nckin.plotxaxis)):
+                # german export format for excel files
+                f.write(str(self.Nckin.plotxaxis[i]).replace('.', ',')+';'+str(self.Nckin.kinetics_data[i]).replace('.', ',')+'\n')
 
 class clarafile():
     def __init__(self, file, dx, dy):
@@ -806,16 +783,20 @@ class Roihandler():
                 cbar = fig.colorbar(cax, ax=ax)
 
                 plt.show()
-                self.roiselgui['values'] = list(self.roilist.keys())
                 self.roi_points.clear()
+                self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
+                self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
             self.roi_mode = False
-            print(len(self.roilist))
+
         else:
+            self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
+            self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
             self.button_toggle.label.set_text('Save ROI')
             self.roi_points.clear()
             self.clear_roi_lines()
             self.roi_mode = True
             plt.draw()
+
 
     def clear_roi(self, event):
         self.clear_roi_points()
@@ -941,15 +922,17 @@ class NanocrystalKinetics:
             raise ValueError("Kinetics data not computed. Run compute_kinetics() first.")
 
         # dreate x-axis values according to self.dt
-        self.plotxaxis = np.arange(len(self.kinetics_data)) * self.dt
+        self.plotxaxis = np.arange(len(self.kinetics_data)) * self.dt / 60
+        self.axisfactor = 1000
         
         # create a plot
         self.kinfig, self.kinax = plt.subplots(figsize=(8, 5))
         #self.kinax.plot(self.kinetics_data, marker='o', linestyle='-') # no x-axis
-        self.kinax.plot(self.plotxaxis, self.kinetics_data, marker='o', linestyle='-')
+        self.kinax.plot(self.plotxaxis, self.kinetics_data/self.axisfactor, marker='o', linestyle='-')
         self.kinax.set_title('Nanocrystal Kinetics')
-        self.kinax.set_xlabel('Time (frames)')
-        self.kinax.set_ylabel('Degradation')
+        self.kinax.set_xlabel('Time (h)')
+        self.kinax.set_ylabel('Image counts integrated x {}'.format(self.axisfactor))
+        self.kinax.tick_params(axis='both', which='major', labelsize=14)
         self.kinax.grid(True)
         self.kinfig.tight_layout()
         self.kinfig.show()
