@@ -1,5 +1,5 @@
 import numpy as np
-import os, sys, re, cv2
+import os, sys, re, cv2, copy, gzip, pickle
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -10,6 +10,7 @@ from matplotlib.widgets import Button
 from matplotlib.path import Path
 import copy
 from datetime import datetime
+import scipy.sparse as sp
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -464,9 +465,10 @@ class clarakinetics():
 
     def savekinseries(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.roiims')
         # save the series to the file
-        np.save(filename, self.procimages[self.procseriesselect.get()])
+        #np.save(filename, self.procimages[self.procseriesselect.get()])
+        compsaveimseries(self.procimages[self.procseriesselect.get()], filename)
     
     def loadkinseries(self):
         # ask for a filename
@@ -474,7 +476,8 @@ class clarakinetics():
         # load the series from the file
         loadedname = 'loaded_'+filename.split('/')[-1].split('.')[0]
         # add the loaded series to the keys of procseriesselect
-        self.procimages[loadedname] = np.load(filename)
+        # self.procimages[loadedname] = np.load(filename)
+        self.procimages[loadedname] = comploadimseries(filename)
         # update the entries in procseriesselect (values = self.procimages)
         self.updkinseries()
         # set the selected series to the new series
@@ -983,3 +986,51 @@ class PlotController:
             print(f"Modified plot: {name}")
         else:
             print(f"Plot '{name}' does not exist!")
+
+def compsaveimseries(array_series, filename):
+    """
+    Save an array of 2D arrays by replacing np.nan with (global max + 1) and compressing them.
+    
+    Parameters:
+    - array_series: np.ndarray, array of 2D np.ndarrays containing np.nan values.
+    - filename: str, the filename to save the compressed data.
+    """
+    # Determine the global maximum across all 2D arrays
+    max_val = max(np.nanmax(arr) for arr in array_series)
+    placeholder = max_val + 1
+    
+    # Replace np.nan with placeholder and convert each to sparse format
+    sparse_series = []
+    for arr in array_series:
+        arr_replaced = np.where(np.isnan(arr), placeholder, arr)
+        sparse_series.append(sp.csr_matrix(arr_replaced))
+    
+    # Save the sparse matrices and placeholder using gzip compression
+    with gzip.open(filename, 'wb') as f:
+        pickle.dump({'sparse_series': sparse_series, 'placeholder': placeholder}, f)
+
+def comploadimseries(filename):
+    """
+    Load the compressed array series, restoring np.nan where appropriate.
+    
+    Parameters:
+    - filename: str, the filename to load the compressed data from.
+    
+    Returns:
+    - list of np.ndarray, the reconstructed 2D arrays with np.nan values.
+    """
+    # Load the data
+    with gzip.open(filename, 'rb') as f:
+        data = pickle.load(f)
+    
+    sparse_series = data['sparse_series']
+    placeholder = data['placeholder']
+    
+    # Convert each sparse matrix back to dense and restore np.nan
+    restored_series = []
+    for sparse_matrix in sparse_series:
+        dense_array = sparse_matrix.toarray()
+        dense_array[dense_array == placeholder] = np.nan
+        restored_series.append(dense_array)
+    
+    return restored_series
