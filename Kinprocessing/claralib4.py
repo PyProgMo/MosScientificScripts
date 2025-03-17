@@ -1,16 +1,15 @@
 import numpy as np
-import os, sys, re, cv2, copy, gzip, pickle
+import os, sys, re, cv2, copy, gzip, pickle, copy, bz2
 from scipy.optimize import curve_fit
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.path import Path
+from matplotlib.widgets import Button
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
-from matplotlib.widgets import Button
-from matplotlib.path import Path
-import copy
 from datetime import datetime
-import scipy.sparse as sp
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -188,7 +187,42 @@ class clarakinetics():
 
         # construct implotframe in a new frame on the notebook
         self.implframe = tk.Frame(self.kinetics_frame)
-        self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')                           
+        self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+
+    def buildkinfit(self, frame, startcol=0, startrow=3):
+        self.rateconstantvar = tk.StringVar()
+        # add a spacer on the frame
+        self.spacer = tk.Label(frame, text=' ')
+        self.spacer.grid(row=startrow, column=startcol)
+
+        # add a label to the frame
+        self.kinlabel = tk.Label(frame, text='Kinetics model:')
+        self.kinlabel.grid(row=startrow+1, column=startcol)
+
+        # add a combobox to select the kinetics model
+        self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
+        self.kinordersel = ttk.Combobox(frame, values=self.kinorders, width=10)
+        self.kinordersel.grid(row=startrow+1, column=startcol+1)
+        # add button to obtain the rate constant
+        self.kinbutton = tk.Button(frame, text='Calculate Rate Constant', command=lambda: self.compute_rate_constant(self.kinordersel.get(), self.kinetics_data, float(self.dt.get()), self.kinparam))
+        self.kinbutton.grid(row=startrow+1, column=startcol+2)
+
+        # display rate constant
+        self.rateconstlabel = tk.Label(frame, text='Rate constant:')
+        self.rateconstlabel.grid(row=startrow+2, column=startcol)
+        # display the rate constant
+        self.rateconstentry = tk.Label(frame, textvariable=self.rateconstantvar)
+        self.rateconstentry.grid(row=startrow+2, column=startcol+1)
+
+        # add a button to plot the kinetics and the fit
+
+
+    def compute_rate_constant(self, order, y, dt, param):
+        self.rateconstant = calculate_rate_constant(order, y, dt, param)
+        self.rateconstantvar.set(str(self.rateconstant))
+        
+    def plotdataandfit(self, frame, x, y, fit, startcol=0, startrow=0):
+        pass
     
     def kinplot(self, notebook, row=0):
         # get plotimage from self.cimages[i].imagedata
@@ -558,7 +592,7 @@ class clarakinetics():
             self.imageseries.append(self.cimages[i].imagedata)
         
         self.kinmethods = ['Thresholding', 'Integration', 'Edge detection']
-        self.kinmethodlabel = tk.Label(self.kinframe, text='Select method:')
+        self.kinmethodlabel = tk.Label(self.kinframe, text='Select Int method:')
         self.kinmethodlabel.grid(row=2, column=0)
         # select method to compute the kinetics
         self.kinmethod.set(self.kinmethods[0])
@@ -575,7 +609,7 @@ class clarakinetics():
         self.Nckin = NanocrystalKinetics(self.imageseries)
         
         # add a button to compute the kinetics
-        self.kinbutton = tk.Button(self.kinframe, text='Compute Kinetics', command=lambda: self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get()))
+        self.kinbutton = tk.Button(self.kinframe, text='Calculate Kinetics', command=lambda: self.comptokin())
         self.kinbutton.grid(row=2, column=4)
 
         # add a button to plot the kinetics
@@ -585,6 +619,10 @@ class clarakinetics():
         # export kinetics image to a file
         self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
         self.exportkinbutton.grid(row=2, column=6)
+    
+    def comptokin(self):
+        self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
+        self.buildkinfit(self.kinframe)
     
     def exportkinetics(self):
 
@@ -900,20 +938,6 @@ class NanocrystalKinetics:
             area = np.sum(img_uint8)
             kinetics.append(area)
         
-        '''
-        old kinetics processing
-        for img in self.image_series:
-            # Ensure image is in uint8 format
-            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img
-            
-            # Apply thresholding to segment nanocrystals
-            _, binary_img = cv2.threshold(img_uint8, threshold, 255, cv2.THRESH_BINARY)
-            
-            # Compute the total area of detected nanocrystals
-            area = np.sum(binary_img > 0)
-            kinetics.append(area)
-            '''
-        
         self.kinetics_data = np.array(kinetics)
         return self.kinetics_data
 
@@ -1034,3 +1058,37 @@ def comploadimseries(filename):
         restored_series.append(dense_array)
     
     return restored_series
+
+def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float = 1.0) -> float:
+    if not isinstance(dt, (float, int)):
+        raise ValueError("Time interval (dt) must be a float or int.")
+
+    y0 = y[0]  # Initial concentration
+    yt = y[-1]  # Final concentration
+    t = dt * (len(y) - 1)  # Total time
+
+    if order == '0 order':
+        # Zero-order rate constant from a linear fit where k is the slope
+        p = np.polyfit(np.arange(len(y)) * dt, y, 1)
+        k = p[0]
+    elif order == '1st order':
+        if yt <= 0:
+            raise ValueError("Final concentration must be greater than zero for first-order reactions.")
+        popt, _ = curve_fit(k1model, np.arange(len(y)) * dt, y, p0=[1.0, y0])
+        k = popt[0]
+    elif order == '2nd order':
+        if yt == 0:
+            raise ValueError("Final concentration cannot be zero for second-order reactions.")
+        k = (1 / yt - 1 / y0) / t
+    elif order == '3rd order':
+        if yt == 0:
+            raise ValueError("Final concentration cannot be zero for third-order reactions.")
+        k = (1 / (yt ** 2) - 1 / (y0 ** 2)) / (2 * t)
+    else:
+        raise ValueError("Invalid reaction order. Choose from '0 order', '1st order', '2nd order', '3rd order'.")
+
+    return k
+
+# First-order rate constant from an exponential fit
+def k1model(t, k, A):
+    return A * np.exp(-k * t)
