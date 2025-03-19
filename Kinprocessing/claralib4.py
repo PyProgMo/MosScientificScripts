@@ -161,6 +161,9 @@ class clarakinetics():
         self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
 
+
+        self.kinfitparams = {'0 order': [0, 0], '1st order': [0, 0], '2nd order': [0, 0], '3rd order': [0, 0]}
+
         self.dt.set('15')
         self.colormap.set('gray')
         self.proccolormap.set('gray')
@@ -214,15 +217,56 @@ class clarakinetics():
         self.rateconstentry = tk.Label(frame, textvariable=self.rateconstantvar)
         self.rateconstentry.grid(row=startrow+2, column=startcol+1)
 
-        # add a button to plot the kinetics and the fit
-
+        # add button to plot the data and the fit
+        self.plotdatafitbutton = tk.Button(frame, text='Plot Data and Fit', command=lambda: self.plotdataandfit(self.kinetics_data))
+        self.plotdatafitbutton.grid(row=startrow+1, column=startcol+3)
 
     def compute_rate_constant(self, order, y, dt, param):
-        self.rateconstant = calculate_rate_constant(order, y, dt, param)
-        self.rateconstantvar.set(str(self.rateconstant))
+
+        self.kinfitparams[order] = calculate_rate_constant(order, y, dt, param)
+
+        self.rateconstantvar.set("")  # Clear the previous value
+        self.rateconstantvar.set(str(self.kinfitparams[order][0]))
         
-    def plotdataandfit(self, frame, x, y, fit, startcol=0, startrow=0):
-        pass
+    def plotdataandfit(self, y):
+
+        dt = float(self.dt.get())
+
+        # dreate x-axis values according to self.dt
+        x = np.arange(len(self.kinetics_data)) * dt / 60
+        axisfactor = 1000
+
+        # create a new figure
+        fig, ax = plt.subplots(figsize=(5, 5))
+        # plot the data
+        ax.plot(x, y/axisfactor, label='Data')
+        # convert rate constant to function
+        if self.rateconstantvar.get() == '':
+            print('No rate constant calculated')
+            return
+        else:
+            rateconstant = float(self.rateconstantvar.get())
+        norder = self.kinordersel.get().split(' ')[0]
+        if norder == '0':
+            func = lambda x: rateconstant * x * 60 + y[0]
+        elif norder == '1st':
+            func = lambda x: rateconstant * x**1 + y[0]
+        elif norder == '2nd':
+            func = lambda x: rateconstant * x**2 + y[0]
+        elif norder == '3rd':
+            func = lambda x: rateconstant * x**3 + y[0]
+        # plot the fit
+        ax.plot(x, func(x)/axisfactor, label='Fit')
+        # add labels
+        ax.set_xlabel('Time (min)')
+        ax.set_ylabel('Intensity')
+        ax.set_title('Data and Fit')
+        ax.legend()
+        # add grid
+        ax.grid(True)
+        # show the plot
+        fig.show()
+
     
     def kinplot(self, notebook, row=0):
         # get plotimage from self.cimages[i].imagedata
@@ -1069,25 +1113,23 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
 
     if order == '0 order':
         # Zero-order rate constant from a linear fit where k is the slope
-        p = np.polyfit(np.arange(len(y)) * dt, y, 1)
-        k = p[0]
+        popt, _ = curve_fit(lambda t, k, b: k * t + b, np.arange(len(y)) * dt, y, p0=[1.0, y0])
     elif order == '1st order':
         if yt <= 0:
             raise ValueError("Final concentration must be greater than zero for first-order reactions.")
-        popt, _ = curve_fit(k1model, np.arange(len(y)) * dt, y, p0=[1.0, y0])
-        k = popt[0]
+        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, y0])
     elif order == '2nd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for second-order reactions.")
-        k = (1 / yt - 1 / y0) / t
+        popt, _ = curve_fit(lambda t, k: 1 / (1 / y0 + k * t), np.arange(len(y)) * dt, 1 / y, p0=[1.0])
     elif order == '3rd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for third-order reactions.")
-        k = (1 / (yt ** 2) - 1 / (y0 ** 2)) / (2 * t)
+        popt, _ = curve_fit(lambda t, k: 1 / (1 / y0 + k * t ** 2), np.arange(len(y)) * dt, 1 / y, p0=[1.0])
     else:
         raise ValueError("Invalid reaction order. Choose from '0 order', '1st order', '2nd order', '3rd order'.")
 
-    return k
+    return popt
 
 # First-order rate constant from an exponential fit
 def k1model(t, k, A):
