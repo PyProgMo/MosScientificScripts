@@ -1116,19 +1116,19 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
 
     if order == '0 order':
         # Zero-order rate constant from a linear fit where k is the slope
-        popt, _ = curve_fit(lambda t, k, A, b: A * k * t + b, np.arange(len(y)) * dt, y, p0=[1.0, 1.0, y0])
+        popt, _ = curve_fit(k0model, np.arange(len(y)) * dt, y, p0=[1.0, y0, y[-1]])
     elif order == '1st order':
         if yt <= 0:
             raise ValueError("Final concentration must be greater than zero for first-order reactions.")
-        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, y0])
+        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, y0, y[-1]], maxfev=10000)
     elif order == '2nd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for second-order reactions.")
-        popt, _ = curve_fit(lambda t, k, A, b: A * (1 / (1 / y0 + k * t)) + b, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1.0, 0.0])
+        popt, _ = curve_fit(k2model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, y0, y[-1]], maxfev=10000)
     elif order == '3rd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for third-order reactions.")
-        popt, _ = curve_fit(lambda t, k: 1 / (1 / y0 + k * t ** 2), np.arange(len(y)) * dt, 1 / y, p0=[1.0])
+        popt, _ = curve_fit(k3model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, y0, y[-1]], maxfev=10000)
     else:
         raise ValueError("Invalid reaction order. Choose from '0 order', '1st order', '2nd order', '3rd order'.")
 
