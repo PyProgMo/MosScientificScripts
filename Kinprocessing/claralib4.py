@@ -163,6 +163,7 @@ class clarakinetics():
 
 
         self.kinfitparams = {'0 order': [0, 0], '1st order': [0, 0], '2nd order': [0, 0], '3rd order': [0, 0]}
+        self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
 
         self.dt.set('15')
         self.colormap.set('gray')
@@ -203,7 +204,6 @@ class clarakinetics():
         self.kinlabel.grid(row=startrow+1, column=startcol)
 
         # add a combobox to select the kinetics model
-        self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
         self.kinordersel = ttk.Combobox(frame, values=self.kinorders, width=10)
         self.kinordersel.grid(row=startrow+1, column=startcol+1)
         # add button to obtain the rate constant
@@ -248,6 +248,7 @@ class clarakinetics():
             rateconstant = float(self.rateconstantvar.get())
         norder = self.kinordersel.get().split(' ')[0]
         if norder == '0':
+
             func = lambda x: rateconstant * x * 60 + self.kinfitparams['0 order'][1]
         elif norder == '1st':
             func = lambda x: rateconstant * np.exp(-self.kinfitparams['1st order'][0]*x) * 60 * axisfactor + self.kinfitparams['1st order'][1]
