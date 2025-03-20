@@ -39,7 +39,7 @@ class imageprocessor():
         self.load_button.grid(row=0, column=2)
         # add a button to load the file
         self.load_button = tk.Button(self.load_frame, text='Load', command=self.loadfile)
-        self.load_button.grid(row=0, column=3)
+        self.load_button.grid(row=0, column=3)        
 
     def browsefile(self):
         self.imagefile = tk.filedialog.askopenfilename()
@@ -175,7 +175,6 @@ class clarakinetics():
         self.kinetics_frame.grid(row=0, column=0, sticky='nsew')
 
         # add entry to select a dir and save on self.sdir
-
         self.sdir.set(self.dir)
         self.dirlabel = tk.Label(self.kinetics_frame, text='Directory:')
         self.dirlabel.grid(row=0, column=0, sticky='w')
@@ -188,9 +187,71 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.kinetics_frame, text='Load', command=self.loadfiles)
         self.loadbutton.grid(row=0, column=3, sticky='w')
 
+        # build a frame to load a roiims file
+        self.roiims_frame = tk.Frame(self.Notebook, border=1, relief='ridge')
+        self.roiims_frame.grid(row=1, column=0, sticky='nsew')
+        # add a label to the frame
+        self.roiimslabel = tk.Label(self.roiims_frame, text='Load ROIIMS file:')
+        self.roiimslabel.grid(row=0, column=0)
+        # add an entry to show the filename
+        self.loadfnvar.set('')
+        self.roiimsentry = tk.Entry(self.roiims_frame, textvariable=self.loadfnvar, width=100)
+        self.roiimsentry.grid(row=0, column=1)
+        # add a button to browse the file
+        self.loadbutton = tk.Button(self.roiims_frame, text='Browse', command=self.browseroiims)
+        self.loadbutton.grid(row=0, column=2)
+        # add a button to load the file
+        self.loadbutton = tk.Button(self.roiims_frame, text='Load', command=self.loadroiims)
+        self.loadbutton.grid(row=0, column=3)
+
         # construct implotframe in a new frame on the notebook
         self.implframe = tk.Frame(self.kinetics_frame)
         self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+    
+    def browseroiims(self):
+        # open a file dialog to select a file
+        self.roiimsfile = tk.filedialog.askopenfilename()
+        self.loadfnvar.set(self.roiimsfile)
+    
+    def loadroiims(self):# asdf
+        # load the roiims file
+        roiimfs = comploadimseries(self.roiimsfile)
+        self.cfnames = [f'roiims_{i}' for i in range(len(roiimfs))]
+        self.cimages = []
+        for i in range(len(roiimfs)):
+            self.cimages.append(clarafile(roiimfs[i], self.dx, self.dy, False))
+            self.cimages[i].imagedata = roiimfs[i]
+
+        # buld the rest of the GUI
+        self.kinplot(self.Notebook, row=2)  # plot the loaded images
+        self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
+        self.buildprocframe(self.Notebook, row=4) # build the processed images frame
+        self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
+
+        # insert the roiims into the self.procimages
+        self.procimages['loaded_series'] = copy.deepcopy(self.cimages)
+
+        # Load Kinetic Series
+        # update the entries in procseriesselect (values = self.procimages)
+        self.updkinseries()
+        # set the selected series to the new series
+        self.procseriesselect.set('loaded_series')
+
+    '''
+    def loadfiles(self):
+        self.cimages = []
+        self.cfnames = []
+        self.cfnames = getcimages(self.dir)
+        for i in range(len(self.cfnames)):
+            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
+
+        self.kinplot(self.Notebook, row=2)  # plot the loaded images
+        self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
+        self.buildprocframe(self.Notebook, row=4) # build the processed images frame
+        self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
+
+    '''
+
 
     def buildkinfit(self, frame, startcol=0, startrow=3):
         self.rateconstantvar = tk.StringVar()
@@ -228,10 +289,9 @@ class clarakinetics():
         self.rateconstantvar.set("")  # Clear the previous value
         self.rateconstantvar.set(str(self.kinfitparams[order][0]))
         
-    def plotdataandfit(self, y):
+    def plotdataandfit(self, y): # function to plot the kinetics data point and the fit
 
         dt = float(self.dt.get())
-
         # dreate x-axis values according to self.dt
         x = np.arange(len(self.kinetics_data)) * dt 
         axisfactor = 1000
@@ -542,7 +602,6 @@ class clarakinetics():
         self.updkinseries()
         # set the selected series to the new series
         self.procseriesselect.set(loadedname)
-        
     
     def procimageNselecttoN(self):
         self.plotprocimageN = int(self.procimageN.get())
@@ -652,14 +711,10 @@ class clarakinetics():
         self.buildkinfit(self.kinframe)
     
     def exportkinetics(self):
-
-        list = self.Nckin.plotxaxis.tolist()
         # ask for a filename
         filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
-        #np.savetxt(filename, np.column_stack(np.round(self.Nckin.plotxaxis, 6), np.round(self.Nckin.kinetics_data, 6), delimiter=';', header='Time (s), Kinetics'))
         np.savetxt(filename, np.column_stack((np.round(self.Nckin.plotxaxis, 12), np.round(self.Nckin.kinetics_data, 12))), delimiter=';', header='Time (s), Kinetics')
-        #np.savetxt(filename, np.column_stack((self.Nckin.plotxaxis, self.Nckin.kinetics_data)), delimiter=';', header='Time (s); Kinetics', fmt='%.6f', newline='\n', comments='', encoding='utf-8')
-
+        # export the kinetics data to a file
         with open(filename, 'w') as f:
             f.write('Time (s); Kinetics\n')
             for i in range(len(self.Nckin.plotxaxis)):
@@ -667,13 +722,15 @@ class clarakinetics():
                 f.write(str(self.Nckin.plotxaxis[i]).replace('.', ',')+';'+str(self.Nckin.kinetics_data[i]).replace('.', ',')+'\n')
 
 class clarafile():
-    def __init__(self, file, dx, dy):
+    def __init__(self, file, dx, dy, load=True):
         self.fn = file
         self.dx = dx
         self.dy = dy
-        self.imagedata, self.metadata = loadclaraimage(self.fn, True)
-        self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
-        self.tint = self.metadata['Exposure Time (secs)']
+        self.load = load
+        if self.load:
+            self.imagedata, self.metadata = loadclaraimage(self.fn, True)
+            self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
+            self.tint = self.metadata['Exposure Time (secs)']
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
     """
@@ -865,7 +922,6 @@ class Roihandler():
             self.roi_mode = True
             plt.draw()
 
-
     def clear_roi(self, event):
         self.clear_roi_points()
         self.clear_roi_lines()
@@ -959,11 +1015,14 @@ class NanocrystalKinetics:
         self.image_series = imgs
         for img in self.image_series:
             # Ensure image is in uint8 format
-            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img
+            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img # this works but raises Error ... I do not know exactly yet why
+            # only copilot knows why this is not working (thanks copilot XD)
+            area = np.sum(img_uint8) # Compute the total area of detected nanocrystals
+            kinetics.append(area)
             
             # Compute the total area of detected nanocrystals
-            area = np.sum(img_uint8)
-            kinetics.append(area)
+            #area = np.sum(img) this will not work "because img is not a binary image" according to copilot (no error but wrong result)
+            #kinetics.append(area)
         
         self.kinetics_data = np.array(kinetics)
         return self.kinetics_data
@@ -1175,3 +1234,4 @@ def k3model(t, k, A0, C=0):
     """
     denominator = np.sqrt((1 / A0**2) + 2 * k * t)
     return (1 / denominator) + C
+
