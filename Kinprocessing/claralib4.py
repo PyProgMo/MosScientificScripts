@@ -194,6 +194,7 @@ class clarakinetics():
 
     def buildkinfit(self, frame, startcol=0, startrow=3):
         self.rateconstantvar = tk.StringVar()
+        self.rateconstunit = tk.StringVar()
         # add a spacer on the frame
         self.spacer = tk.Label(frame, text=' ')
         self.spacer.grid(row=startrow, column=startcol)
@@ -201,10 +202,10 @@ class clarakinetics():
         # add a label to the frame
         self.kinlabel = tk.Label(frame, text='Kinetics model:')
         self.kinlabel.grid(row=startrow+1, column=startcol)
-
         # add a combobox to select the kinetics model
         self.kinordersel = ttk.Combobox(frame, values=self.kinorders, width=10)
         self.kinordersel.grid(row=startrow+1, column=startcol+1)
+        self.kinordersel.set(self.kinorders[0])
         # add button to obtain the rate constant
         self.kinbutton = tk.Button(frame, text='Calculate Rate Constant', command=lambda: self.compute_rate_constant(self.kinordersel.get(), self.kinetics_data, float(self.dt.get()), self.kinparam))
         self.kinbutton.grid(row=startrow+1, column=startcol+2)
@@ -232,13 +233,13 @@ class clarakinetics():
         dt = float(self.dt.get())
 
         # dreate x-axis values according to self.dt
-        x = np.arange(len(self.kinetics_data)) * dt / 60
+        x = np.arange(len(self.kinetics_data)) * dt 
         axisfactor = 1000
 
         # create a new figure
         fig, ax = plt.subplots(figsize=(5, 5))
         # plot the data
-        ax.plot(x, y/axisfactor, label='Data')
+        ax.plot(x/60, y/axisfactor, label='Data')
         # convert rate constant to function
         if self.rateconstantvar.get() == '':
             print('No rate constant calculated')
@@ -260,7 +261,7 @@ class clarakinetics():
             func = lambda x: k3model(x, *self.kinfitparams['3rd order'])
             print(f"Third-order fit parameters: k={self.kinfitparams['3rd order'][0]}, A0={self.kinfitparams['3rd order'][1]}, C={self.kinfitparams['3rd order'][2]}")
         # plot the fit
-        ax.plot(x, func(x)/axisfactor, label='Fit')
+        ax.plot(x/60, func(x)/axisfactor, label='Fit')
         # add labels
         ax.set_xlabel('Time in h')
         ax.set_ylabel('Intensity')
@@ -1121,15 +1122,15 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
     elif order == '1st order':
         if yt <= 0:
             raise ValueError("Final concentration must be greater than zero for first-order reactions.")
-        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, 1, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k1model, np.arange(len(y)) * dt, y, p0=[1.0, y0, y[-1]], maxfev=10000)
     elif order == '2nd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for second-order reactions.")
-        popt, _ = curve_fit(k2model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k2model, np.arange(len(y)) * dt, y, p0=[1.0, y0, y[-1]], maxfev=10000)
     elif order == '3rd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for third-order reactions.")
-        popt, _ = curve_fit(k3model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k3model, np.arange(len(y)) * dt, y, p0=[1.0, y0, y[-1]], maxfev=10000)
     else:
         raise ValueError("Invalid reaction order. Choose from '0 order', '1st order', '2nd order', '3rd order'.")
 
