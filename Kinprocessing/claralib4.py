@@ -248,13 +248,13 @@ class clarakinetics():
             rateconstant = float(self.rateconstantvar.get())
         norder = self.kinordersel.get().split(' ')[0]
         if norder == '0':
-            func = lambda x: rateconstant * x * 60 + y[0]
+            func = lambda x: rateconstant * x * 60 + self.kinfitparams['0 order'][1]
         elif norder == '1st':
-            func = lambda x: rateconstant * x**1 + y[0]
+            func = lambda x: rateconstant * np.exp(-self.kinfitparams['1st order'][0]*x) * 60 * axisfactor + self.kinfitparams['1st order'][1]
         elif norder == '2nd':
-            func = lambda x: rateconstant * x**2 + y[0]
+            func = lambda x: rateconstant * x**2 * 60 + self.kinfitparams['2nd order'][1]
         elif norder == '3rd':
-            func = lambda x: rateconstant * x**3 + y[0]
+            func = lambda x: rateconstant * x**3 * 60 + self.kinfitparams['3rd order'][1]
         # plot the fit
         ax.plot(x, func(x)/axisfactor, label='Fit')
         # add labels
@@ -266,7 +266,6 @@ class clarakinetics():
         ax.grid(True)
         # show the plot
         fig.show()
-
     
     def kinplot(self, notebook, row=0):
         # get plotimage from self.cimages[i].imagedata
