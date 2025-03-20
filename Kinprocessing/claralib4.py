@@ -445,35 +445,13 @@ class clarakinetics():
         self.multiroibutton = tk.Button(self.roiframe, text='Multiply ROI to Images', command=self.multiroi2imagedata)
         self.multiroibutton.grid(row=0, column=5)
     
-    '''
-    def buildprocframe(self, notebook, row=0):
-        # store processed image series in a dict
-        self.procimages = {}
-
-        self.procframe = tk.Frame(notebook, border=2, relief='ridge')
-        self.procframe.grid(row=row, column=0, sticky='nsew')
-        self.proclabel = tk.Label(self.roiframe, text='Processed Images')
-        self.proclabel.grid(row=0, column=0, sticky='w')
-
-        # add a combobox to select the processed image
-        self.procimage = tk.StringVar()
-        self.procimage.set('0') '''
-    
     def multiroi2imagedata(self):
         roi = self.roilist[self.roiselgui.get()]
         seriesname = f'{self.roiselgui.get()}_series'
         # copy imageseries and store them in self.procimages
         self.procimages[seriesname] = copy.deepcopy(self.imageseries)
         # apply roi to the imageseries, set to to nan where roi is 0
-        # old multiplication, very slow        
-        '''
-        for i in range(len(self.procimages[seriesname])):
-            for j in range(len(self.procimages[seriesname][i])):
-                for k in range(len(self.procimages[seriesname][i][j])):
-                    if np.isnan(roi[j][k]):
-                        self.procimages[seriesname][i][j][k] = np.nan
-        '''
-        # new multiplication, faster (thanks to github copilot for the idea XD)
+        # new multiplication, faster (thanks to github copilot for the idea XD) (old one was very slow)
         for i in range(len(self.procimages[seriesname])):
             self.procimages[seriesname][i] = np.where(np.isnan(roi), np.nan, self.procimages[seriesname][i])
 
