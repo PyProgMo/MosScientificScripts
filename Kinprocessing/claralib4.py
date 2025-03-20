@@ -668,6 +668,7 @@ class clarakinetics():
         self.exportkinbutton.grid(row=2, column=6)
     
     def comptokin(self):
+        self.deltat = float(self.dt.get())
         self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
         self.buildkinfit(self.kinframe)
     
@@ -1120,15 +1121,15 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
     elif order == '1st order':
         if yt <= 0:
             raise ValueError("Final concentration must be greater than zero for first-order reactions.")
-        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, y0, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k1model, np.arange(len(y)) * t, y, p0=[1.0, 1, y[-1]], maxfev=10000)
     elif order == '2nd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for second-order reactions.")
-        popt, _ = curve_fit(k2model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, y0, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k2model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1, y[-1]], maxfev=10000)
     elif order == '3rd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for third-order reactions.")
-        popt, _ = curve_fit(k3model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, y0, y[-1]], maxfev=10000)
+        popt, _ = curve_fit(k3model, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1, y[-1]], maxfev=10000)
     else:
         raise ValueError("Invalid reaction order. Choose from '0 order', '1st order', '2nd order', '3rd order'.")
 
