@@ -258,7 +258,7 @@ class clarakinetics():
         # plot the fit
         ax.plot(x, func(x)/axisfactor, label='Fit')
         # add labels
-        ax.set_xlabel('Time (min)')
+        ax.set_xlabel('Time in h')
         ax.set_ylabel('Intensity')
         ax.set_title('Data and Fit')
         ax.legend()
