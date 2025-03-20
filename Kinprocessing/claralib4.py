@@ -1113,7 +1113,7 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
 
     if order == '0 order':
         # Zero-order rate constant from a linear fit where k is the slope
-        popt, _ = curve_fit(lambda t, k, b: k * t + b, np.arange(len(y)) * dt, y, p0=[1.0, y0])
+        popt, _ = curve_fit(lambda t, k, A, b: A * k * t + b, np.arange(len(y)) * dt, y, p0=[1.0, 1.0, y0])
     elif order == '1st order':
         if yt <= 0:
             raise ValueError("Final concentration must be greater than zero for first-order reactions.")
@@ -1121,7 +1121,7 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
     elif order == '2nd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for second-order reactions.")
-        popt, _ = curve_fit(lambda t, k: 1 / (1 / y0 + k * t), np.arange(len(y)) * dt, 1 / y, p0=[1.0])
+        popt, _ = curve_fit(lambda t, k, A, b: A * (1 / (1 / y0 + k * t)) + b, np.arange(len(y)) * dt, 1 / y, p0=[1.0, 1.0, 0.0])
     elif order == '3rd order':
         if yt == 0:
             raise ValueError("Final concentration cannot be zero for third-order reactions.")
@@ -1131,6 +1131,67 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
 
     return popt
 
-# First-order rate constant from an exponential fit
-def k1model(t, k, A):
-    return A * np.exp(-k * t)
+def k0model(t, k, A0, Am=1, C=0):
+    """
+    Zero-order kinetics model with an amplitude factor and a constant shift.
+
+    Parameters:
+    t : float or array-like : Time
+    k : float : Rate constant (M/s)
+    A0 : float : Initial concentration (M)
+    Am : float : Amplitude factor (scaling concentration)
+    C : float : Additional constant shift
+
+    Returns:
+    float or array : Concentration at time t
+    """
+    return Am * (A0 - k * t) + C
+
+def k1model(t, k, A0, Am=1, C=0):
+    """
+    First-order kinetics model with an amplitude factor and a constant shift.
+
+    Parameters:
+    t : float or array-like : Time
+    k : float : Rate constant (1/s)
+    A0 : float : Initial concentration (M)
+    Am : float : Amplitude factor (scaling concentration)
+    C : float : Additional constant shift
+
+    Returns:
+    float or array : Concentration at time t
+    """
+    return Am * A0 * np.exp(-k * t) + C
+
+def k2model(A, k, t, Am=1, C=0):
+    """
+    Calculate the concentration of A at time t for a modified second-order reaction.
+
+    Parameters:
+    A0 : float : Initial concentration of A
+    k : float : Rate constant (1/s) for second-order reaction)
+    t : float : Time (s)
+    Am : float : Amplitude factor (scaling the concentration)
+    C : float : Additional constant shift
+
+    Returns:
+    A : float : Concentration of A at time t
+    """
+    return (Am / ((1 / A) + k * t)) + C
+
+def k3model(t, k, A0, Am=1, C=0):
+    """
+    Third-order kinetics model with an amplitude factor and a constant shift.
+
+    Parameters:
+    t : float or array-like : Time
+    k : float : Rate constant (1/(M^2 * s))
+    A0 : float : Initial concentration
+    Am : float : Amplitude factor (scaling concentration)
+    C : float : Additional constant shift (default is 0)
+
+    Returns:
+    float or array : Concentration at time t
+    """
+    denominator = np.sqrt((1 / A0**2) + 2 * k * t)
+    return (Am / denominator) + C
