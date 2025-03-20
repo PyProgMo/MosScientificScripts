@@ -161,8 +161,7 @@ class clarakinetics():
         self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
 
-
-        self.kinfitparams = {'0 order': [0, 0], '1st order': [0, 0], '2nd order': [0, 0], '3rd order': [0, 0]}
+        self.kinfitparams = {'0 order': [0, 0, 0], '1st order': [0, 0, 0], '2nd order': [0, 0, 0], '3rd order': [0, 0, 0]}
         self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
 
         self.dt.set('15')
@@ -249,13 +248,17 @@ class clarakinetics():
         norder = self.kinordersel.get().split(' ')[0]
         if norder == '0':
 
-            func = lambda x: rateconstant * x * 60 + self.kinfitparams['0 order'][1]
+            func = lambda x: k0model(x, *self.kinfitparams['0 order'])
+            print(f"Zero-order fit parameters: k={self.kinfitparams['0 order'][0]}, A0={self.kinfitparams['0 order'][1]}, C={self.kinfitparams['0 order'][2]}")
         elif norder == '1st':
-            func = lambda x: rateconstant * np.exp(-self.kinfitparams['1st order'][0]*x) * 60 * axisfactor + self.kinfitparams['1st order'][1]
+            func = lambda x: k1model(x, *self.kinfitparams['1st order'])
+            print(f"First-order fit parameters: k={self.kinfitparams['1st order'][0]}, A0={self.kinfitparams['1st order'][1]}, C={self.kinfitparams['1st order'][2]}")
         elif norder == '2nd':
-            func = lambda x: rateconstant * x**2 * 60 + self.kinfitparams['2nd order'][1]
+            func = lambda x: k2model(x, *self.kinfitparams['2nd order'])
+            print(f"Second-order fit parameters: k={self.kinfitparams['2nd order'][0]}, A0={self.kinfitparams['2nd order'][1]}, C={self.kinfitparams['2nd order'][2]}")
         elif norder == '3rd':
-            func = lambda x: rateconstant * x**3 * 60 + self.kinfitparams['3rd order'][1]
+            func = lambda x: k3model(x, *self.kinfitparams['3rd order'])
+            print(f"Third-order fit parameters: k={self.kinfitparams['3rd order'][0]}, A0={self.kinfitparams['3rd order'][1]}, C={self.kinfitparams['3rd order'][2]}")
         # plot the fit
         ax.plot(x, func(x)/axisfactor, label='Fit')
         # add labels
@@ -1131,7 +1134,7 @@ def calculate_rate_constant(order: str, y: np.ndarray, dt: float, param: float =
 
     return popt
 
-def k0model(t, k, A0, Am=1, C=0):
+def k0model(t, k, A0, C=0):
     """
     Zero-order kinetics model with an amplitude factor and a constant shift.
 
@@ -1145,53 +1148,50 @@ def k0model(t, k, A0, Am=1, C=0):
     Returns:
     float or array : Concentration at time t
     """
-    return Am * (A0 - k * t) + C
+    return (A0 - k * t) + C
 
-def k1model(t, k, A0, Am=1, C=0):
+def k1model(t, k, A, C=0):
     """
-    First-order kinetics model with an amplitude factor and a constant shift.
+    First-order kinetics model with an additional constant.
 
     Parameters:
     t : float or array-like : Time
     k : float : Rate constant (1/s)
-    A0 : float : Initial concentration (M)
-    Am : float : Amplitude factor (scaling concentration)
-    C : float : Additional constant shift
-
-    Returns:
-    float or array : Concentration at time t
-    """
-    return Am * A0 * np.exp(-k * t) + C
-
-def k2model(A, k, t, Am=1, C=0):
-    """
-    Calculate the concentration of A at time t for a modified second-order reaction.
-
-    Parameters:
-    A0 : float : Initial concentration of A
-    k : float : Rate constant (1/s) for second-order reaction)
-    t : float : Time (s)
-    Am : float : Amplitude factor (scaling the concentration)
-    C : float : Additional constant shift
-
-    Returns:
-    A : float : Concentration of A at time t
-    """
-    return (Am / ((1 / A) + k * t)) + C
-
-def k3model(t, k, A0, Am=1, C=0):
-    """
-    Third-order kinetics model with an amplitude factor and a constant shift.
-
-    Parameters:
-    t : float or array-like : Time
-    k : float : Rate constant (1/(M^2 * s))
-    A0 : float : Initial concentration
-    Am : float : Amplitude factor (scaling concentration)
+    A : float : Initial amplitude (concentration)
     C : float : Additional constant shift (default is 0)
 
     Returns:
     float or array : Concentration at time t
     """
+    return A * np.exp(-k * t) + C
+
+def k2model(t, k, A0, C=0):
+    """
+    Second-order kinetics model with a constant shift.
+
+    Parameters:
+    t : float or array-like : Time
+    k : float : Rate constant (1/(M*s))
+    A0 : float : Initial concentration (M)
+    C : float : Additional constant shift
+
+    Returns:
+    float or array : Concentration at time t
+    """
+    return (1 / ((1 / A0) + k * t)) + C
+
+def k3model(t, k, A0, C=0):
+    """
+    Third-order kinetics model with a constant shift.
+
+    Parameters:
+    t : float or array-like : Time
+    k : float : Rate constant (1/(M^2 * s))
+    A0 : float : Initial concentration (M)
+    C : float : Additional constant shift
+
+    Returns:
+    float or array : Concentration at time t
+    """
     denominator = np.sqrt((1 / A0**2) + 2 * k * t)
-    return (Am / denominator) + C
+    return (1 / denominator) + C
