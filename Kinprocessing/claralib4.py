@@ -213,9 +213,11 @@ class clarakinetics():
         self.roiimsfile = tk.filedialog.askopenfilename()
         self.loadfnvar.set(self.roiimsfile)
     
-    def loadroiims(self):# asdf
+    #        self.procimages[loadedname] = comploadimseries(filename)
+    def loadroiims(self):
         # load the roiims file
         roiimfs = comploadimseries(self.roiimsfile)
+
         self.cfnames = [f'roiims_{i}' for i in range(len(roiimfs))]
         self.cimages = []
         for i in range(len(roiimfs)):
@@ -228,8 +230,12 @@ class clarakinetics():
         self.buildprocframe(self.Notebook, row=4) # build the processed images frame
         self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
 
+        self.imageseries = []
+        for i in range(len(roiimfs)):
+            self.imageseries.append(roiimfs[i])
+
         # insert the roiims into the self.procimages
-        self.procimages['loaded_series'] = copy.deepcopy(self.cimages)
+        self.procimages['loaded_series'] = copy.deepcopy(self.imageseries)
 
         # Load Kinetic Series
         # update the entries in procseriesselect (values = self.procimages)
@@ -249,13 +255,13 @@ class clarakinetics():
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
         self.buildprocframe(self.Notebook, row=4) # build the processed images frame
         self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
-
     '''
 
-
     def buildkinfit(self, frame, startcol=0, startrow=3):
+        # define constants
         self.rateconstantvar = tk.StringVar()
-        self.rateconstunit = tk.StringVar()
+        self.ampconstvar = tk.StringVar()
+        self.Cconstvar = tk.StringVar()
         # add a spacer on the frame
         self.spacer = tk.Label(frame, text=' ')
         self.spacer.grid(row=startrow, column=startcol)
@@ -278,16 +284,32 @@ class clarakinetics():
         self.rateconstentry = tk.Label(frame, textvariable=self.rateconstantvar)
         self.rateconstentry.grid(row=startrow+2, column=startcol+1)
 
+        # display the Amplitude
+        self.ampconstlabel = tk.Label(frame, text='Amplitude:')
+        self.ampconstlabel.grid(row=startrow+3, column=startcol)
+        # display the amplitude
+        self.ampconstentry = tk.Label(frame, textvariable=self.ampconstvar)
+        self.ampconstentry.grid(row=startrow+3, column=startcol+1)
+
+        # display the +C constant
+        self.cconstlabel = tk.Label(frame, text='+C:')
+        self.cconstlabel.grid(row=startrow+4, column=startcol)
+        # display the +C constant
+        self.cconstentry = tk.Label(frame, textvariable=self.Cconstvar)
+        self.cconstentry.grid(row=startrow+4, column=startcol+1)
+
         # add button to plot the data and the fit
         self.plotdatafitbutton = tk.Button(frame, text='Plot Data and Fit', command=lambda: self.plotdataandfit(self.kinetics_data))
         self.plotdatafitbutton.grid(row=startrow+1, column=startcol+3)
 
-    def compute_rate_constant(self, order, y, dt, param):
-
+    def compute_rate_constant(self, order, y, dt, param): # function to calculate the rate constant
         self.kinfitparams[order] = calculate_rate_constant(order, y, dt, param)
-
         self.rateconstantvar.set("")  # Clear the previous value
+        self.ampconstvar.set("")
+        self.Cconstvar.set("")
         self.rateconstantvar.set(str(self.kinfitparams[order][0]))
+        self.ampconstvar.set(str(self.kinfitparams[order][1]))
+        self.Cconstvar.set(str(self.kinfitparams[order][2]))
         
     def plotdataandfit(self, y): # function to plot the kinetics data point and the fit
 
@@ -608,10 +630,11 @@ class clarakinetics():
         self.plotprocimage()
 
     def plotprocimage(self):
+
         # set procpltimg to np.nan on all pixels
         self.procpltimg = np.full_like(self.cimages[0].imagedata, np.nan) 
-        # set the image
         self.procpltimg = np.asarray(self.procimages[self.procseriesselect.get()][self.plotprocimageN])
+
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
@@ -707,7 +730,10 @@ class clarakinetics():
     
     def comptokin(self):
         self.deltat = float(self.dt.get())
-        self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
+        try:
+            self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
+        except Exception as e:
+            print('Error in Nckin.compute_kinetics:', e)
         self.buildkinfit(self.kinframe)
     
     def exportkinetics(self):
@@ -1181,7 +1207,6 @@ def k0model(t, k, A0, C=0):
     t : float or array-like : Time
     k : float : Rate constant (M/s)
     A0 : float : Initial concentration (M)
-    Am : float : Amplitude factor (scaling concentration)
     C : float : Additional constant shift
 
     Returns:
