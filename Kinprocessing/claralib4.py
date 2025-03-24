@@ -94,10 +94,19 @@ def loadclaraimage(file, metadata=False):
             except:
                 pass
 
+    # find out how many lines to skip: lines with ":" or empty
+    skip = 0
+    with open(file, 'r') as f:
+        for line in f:
+            if line.strip() == '' or ':' in line:
+                skip += 1
+            else:
+                break
+
     with open(file) as f:
         if metadata == True:
             mdr = {}
-            for i in range(34):
+            for i in range(skip):
                 line = f.readline()
                 match = re.match(r"^(.*?):\s+(.+)$", line.strip())
                 if match:
@@ -106,7 +115,7 @@ def loadclaraimage(file, metadata=False):
             mdr['z'] = coord
         # old: skip the first 34 lines
         else:
-            for i in range(34):
+            for i in range(skip):
                 f.readline()
         fload = f.readlines()
     x = []
@@ -918,6 +927,8 @@ class Roihandler():
         self.selnewestroi()
 
     def toggle_roi(self, event):
+        #self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
+        #self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
         if self.roi_mode == True:
             fig, ax = plt.subplots()
             self.button_toggle.label.set_text('Edit ROI')
@@ -938,6 +949,8 @@ class Roihandler():
                 self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
                 self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
             self.roi_mode = False
+            self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
+            self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
 
         else:
             self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
