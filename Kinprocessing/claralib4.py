@@ -589,6 +589,15 @@ class clarakinetics():
         self.procseriesselect.grid(row=0, column=1)
         self.procseriesselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
 
+        # select Kinetic Series for BG evaluation
+        self.bglabel = tk.Label(self.procplotframe, text='Kinetic Series for BG:')
+        self.bglabel.grid(row=0, column=2)
+        self.selbgseries = tk.StringVar()
+        self.bgseries = ttk.Combobox(self.procplotframe, values=[list(self.procimages.keys())])
+        self.bgseries.grid(row=0, column=3)
+        self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
+        self.bgseries.set('')
+
         # all possible colormaps
         self.proccmlabel = tk.Label(self.procplotframe, text='Colormap:')
         self.proccmlabel.grid(row=1, column=0)
@@ -625,6 +634,16 @@ class clarakinetics():
         self.savekinbutton.grid(row=2, column=3)
         self.loadkinbutton = tk.Button(self.procplotframe, text='Load Kinetic Series', command=self.loadkinseries)
         self.loadkinbutton.grid(row=2, column=4)
+    
+    def setbgseries(self):
+        self.bgseriesname = self.bgseries.get()
+        self.bgcarray = [] 
+        for i in range(len(self.procimages[self.bgseriesname])):
+            #a = np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i].imagedata))
+            self.bgcarray.append(np.sum(self.procimages[self.bgseriesname][i])/
+                                 np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
+        print('BG series set to:', self.bgseriesname)
+        
     
     def exportprocimage(self):
         # ask for a filename
@@ -700,6 +719,7 @@ class clarakinetics():
         # update the entries of the combobox
         self.procseriesselect['values'] = list(self.procimages.keys())
         self.selkinseriesbox['values'] = list(self.procimages.keys())
+        self.bgseries['values'] = list(self.procimages.keys())
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
