@@ -46,7 +46,7 @@ class imageprocessor():
         self.loadfnvar.set(self.imagefile)
 
     def loadfile(self):
-        self.imagedata = self.loadfunct(self.imagefile)
+        #self.imagedata = self.loadfunct(self.imagefile) this is done in self.buildnotebook()
         self.buildnotebook()
 
     def fit2dgaussian(self):
@@ -108,7 +108,7 @@ def loadclaraimage(file, metadata=False):
             mdr = {}
             for i in range(skip):
                 line = f.readline()
-                match = re.match(r"^(.*?):\s+(.+)$", line.strip())
+                match = re.match(r"^(.*?):\s+(.+)$", line.strip()) # Compiloted coded this and I thinkt it's beautiful
                 if match:
                     key, value = match.groups()
                     mdr[key.strip()] = value.strip()
@@ -172,6 +172,7 @@ class clarakinetics():
 
         self.kinfitparams = {'0 order': [0, 0, 0], '1st order': [0, 0, 0], '2nd order': [0, 0, 0], '3rd order': [0, 0, 0]}
         self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
+        self.cbarminmaxdict = {}
 
         self.dt.set('15')
         self.colormap.set('gray')
@@ -193,7 +194,7 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.kinetics_frame, text='Browse', command=self.browsefiles)
         self.loadbutton.grid(row=0, column=2, sticky='w')
         # add a button to load the files
-        self.loadbutton = tk.Button(self.kinetics_frame, text='Load', command=self.loadfiles)
+        self.loadbutton = tk.Button(self.kinetics_frame, text='Load Clara Images', command=self.loadfiles)
         self.loadbutton.grid(row=0, column=3, sticky='w')
 
         # build a frame to load a roiims file
@@ -210,7 +211,7 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.roiims_frame, text='Browse', command=self.browseroiims)
         self.loadbutton.grid(row=0, column=2)
         # add a button to load the file
-        self.loadbutton = tk.Button(self.roiims_frame, text='Load', command=self.loadroiims)
+        self.loadbutton = tk.Button(self.roiims_frame, text='Load .roiims file', command=self.loadroiims)
         self.loadbutton.grid(row=0, column=3)
 
         # construct implotframe in a new frame on the notebook
@@ -226,12 +227,21 @@ class clarakinetics():
     def loadroiims(self):
         # load the roiims file
         roiimfs = comploadimseries(self.roiimsfile)
+        self.cimagemin = np.nanmin(roiimfs)
+        self.cimagemax = np.nanmax(roiimfs)
+        print('cimagemin = ', self.cimagemin)
+        print('cimagemax = ', self.cimagemax)
+        #min = 0
+        #max = 1
 
         self.cfnames = [f'roiims_{i}' for i in range(len(roiimfs))]
         self.cimages = []
         for i in range(len(roiimfs)):
             self.cimages.append(clarafile(roiimfs[i], self.dx, self.dy, False))
             self.cimages[i].imagedata = roiimfs[i]
+        
+        self.cbarminmaxdict['loaded_series'] = [np.amin(roiimfs), np.amax(roiimfs)]
+
 
         # buld the rest of the GUI
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
@@ -251,20 +261,6 @@ class clarakinetics():
         self.updkinseries()
         # set the selected series to the new series
         self.procseriesselect.set('loaded_series')
-
-    '''
-    def loadfiles(self):
-        self.cimages = []
-        self.cfnames = []
-        self.cfnames = getcimages(self.dir)
-        for i in range(len(self.cfnames)):
-            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
-
-        self.kinplot(self.Notebook, row=2)  # plot the loaded images
-        self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
-        self.buildprocframe(self.Notebook, row=4) # build the processed images frame
-        self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
-    '''
 
     def buildkinfit(self, frame, startcol=0, startrow=3):
         # define constants
@@ -415,7 +411,7 @@ class clarakinetics():
         # if plot already exists: 
         if self.plotexists:
             # just adjust the image
-            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
+            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get(), vmin=self.cimagemin, vmax=self.cimagemax, interpolation='nearest')
             # delete the colorbar and create a new one
             self.cbar.remove()
             self.cbar = self.fig.colorbar(self.cim, ax=self.ax)
@@ -423,7 +419,7 @@ class clarakinetics():
         else:
             # create a new plot
             self.fig, self.ax = plt.subplots(figsize=(5, 5))
-            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get())
+            self.cim = self.ax.imshow(self.pltimg, cmap=self.colormap.get(), vmin=self.cimagemin, vmax=self.cimagemax, interpolation='nearest')
             self.plotexists = True
             # add colorbar
             self.cbar = self.fig.colorbar(self.cim, ax=self.ax)
@@ -491,8 +487,21 @@ class clarakinetics():
         self.cimages = []
         self.cfnames = []
         self.cfnames = getcimages(self.dir)
+        cimagemin = 0
+        cimagemax = 1
         for i in range(len(self.cfnames)):
             self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
+            min = np.amin(self.cimages[i].imagedata)
+            if min < cimagemin:
+                cimagemin = min
+            max = np.amax(self.cimages[i].imagedata)
+            if max > cimagemax:
+                cimagemax = max
+
+        self.cimagemax = cimagemax
+        print('cimagemax = ', cimagemax)
+        self.cimagemin = cimagemin
+        print('cimagemin = ', cimagemin)
 
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
@@ -543,8 +552,17 @@ class clarakinetics():
         self.procimages[seriesname] = copy.deepcopy(self.imageseries)
         # apply roi to the imageseries, set to to nan where roi is 0
         # new multiplication, faster (thanks to github copilot for the idea XD) (old one was very slow)
+        cbarmin = 0
+        cbarmax = 1
         for i in range(len(self.procimages[seriesname])):
             self.procimages[seriesname][i] = np.where(np.isnan(roi), np.nan, self.procimages[seriesname][i])
+            # update cbarmin and cbarmax
+            if np.amin(self.procimages[seriesname][i]) < cbarmin:
+                cbarmin = np.nanmin(self.procimages[seriesname][i])
+            if np.amax(self.procimages[seriesname][i]) > cbarmax:
+                cbarmax = np.nanmax(self.procimages[seriesname][i])
+        # update cbarminmaxdict
+        self.cbarminmaxdict[seriesname] = [cbarmin, cbarmax]
 
         # update the entries in procseriesselect (values = self.procimages)
         self.updkinseries()
@@ -649,8 +667,9 @@ class clarakinetics():
             # just adjust the image
             self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             # delete the colorbar and create a new one
-            self.proccbar.remove()
-            self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
+            #self.proccbar.remove()
+            # get vmin and vmax from self.cbarminmaxdict[seriesname] = [cbarmin, cbarmax]
+            #self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax, vmin=self.cbarminmaxdict[self.procseriesselect.get()][0], vmax=self.cbarminmaxdict[self.procseriesselect.get()][1])
         
         else:
             # create a new plot
@@ -658,7 +677,7 @@ class clarakinetics():
             self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
             self.procplotexists = True
             # add colorbar
-            self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)
+            self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)#, vmin=self.cbarminmaxdict[self.procseriesselect.get()][0], vmax=self.cbarminmaxdict[self.procseriesselect.get()][1])
 
         # set proccmat to gryscale
         self.procax.set_title(self.cfnames[self.plotprocimageN])
