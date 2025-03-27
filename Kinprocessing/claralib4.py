@@ -169,6 +169,7 @@ class clarakinetics():
         self.procseries = tk.StringVar()
         self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
+        self.bgcarray = []
 
         self.kinfitparams = {'0 order': [0, 0, 0], '1st order': [0, 0, 0], '2nd order': [0, 0, 0], '3rd order': [0, 0, 0]}
         self.kinorders = ['0 order', '1st order', '2nd order', '3rd order']
@@ -589,15 +590,6 @@ class clarakinetics():
         self.procseriesselect.grid(row=0, column=1)
         self.procseriesselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
 
-        # select Kinetic Series for BG evaluation
-        self.bglabel = tk.Label(self.procplotframe, text='Kinetic Series for BG:')
-        self.bglabel.grid(row=0, column=2)
-        self.selbgseries = tk.StringVar()
-        self.bgseries = ttk.Combobox(self.procplotframe, values=[list(self.procimages.keys())])
-        self.bgseries.grid(row=0, column=3)
-        self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
-        self.bgseries.set('')
-
         # all possible colormaps
         self.proccmlabel = tk.Label(self.procplotframe, text='Colormap:')
         self.proccmlabel.grid(row=1, column=0)
@@ -640,10 +632,9 @@ class clarakinetics():
         self.bgcarray = [] 
         for i in range(len(self.procimages[self.bgseriesname])):
             #a = np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i].imagedata))
-            self.bgcarray.append(np.sum(self.procimages[self.bgseriesname][i])/
+            self.bgcarray.append(np.nansum(self.procimages[self.bgseriesname][i]) /
                                  np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
-        print('BG series set to:', self.bgseriesname)
-        
+            print(np.nansum(self.procimages[self.bgseriesname][i]), np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))       
     
     def exportprocimage(self):
         # ask for a filename
@@ -762,7 +753,7 @@ class clarakinetics():
         self.kinparam.grid(row=2, column=3)
         
         # create a new instance of NanocrystalKinetics
-        self.Nckin = NanocrystalKinetics(self.imageseries)
+        self.Nckin = NanocrystalKinetics(self.imageseries, self.bgcarray)
         
         # add a button to compute the kinetics
         self.kinbutton = tk.Button(self.kinframe, text='Calculate Kinetics', command=lambda: self.comptokin())
@@ -775,9 +766,21 @@ class clarakinetics():
         # export kinetics image to a file
         self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
         self.exportkinbutton.grid(row=2, column=6)
+
+        # select Kinetic Series for BG evaluation
+        self.bglabel = tk.Label(self.procplotframe, text='Kinetic Series for BG:')
+        self.bglabel.grid(row=0, column=3)
+        self.selbgseries = tk.StringVar()
+        self.bgseries = ttk.Combobox(self.procplotframe, values=[list(self.procimages.keys())])
+        self.bgseries.grid(row=0, column=4)
+        self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
+        self.bgseries.set('')
     
     def comptokin(self):
         self.deltat = float(self.dt.get())
+        # check if bgseries is set
+        if self.bgseries.get() == '':
+            self.bgcarray = np.ones(len(self.procimages[self.procseriesselect.get()]))
         try:
             self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
         except Exception as e:
@@ -801,6 +804,7 @@ class clarafile():
         self.dx = dx
         self.dy = dy
         self.load = load
+        self.npixels
         if self.load:
             self.imagedata, self.metadata = loadclaraimage(self.fn, True)
             self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
@@ -1073,12 +1077,13 @@ def highlight_roi(Mat, points):
     return np.transpose(result)
 
 class NanocrystalKinetics:
-    def __init__(self, image_series):
+    def __init__(self, image_series, bgcoutarray):
         """
         Initialize the class with a series of grayscale images.
         :param image_series: List or NumPy array of 2D grayscale images.
         """
         self.image_series = image_series
+        self.bgcoutarray = bgcoutarray
         self.kinetics_data = None
 
     def compute_kinetics1(self, imgs, dt, method):
