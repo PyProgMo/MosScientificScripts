@@ -169,6 +169,9 @@ class clarakinetics():
         self.procseries = tk.StringVar()
         self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
+        self.powercorrvar = tk.IntVar()
+        self.powercorrvar.set(1)
+
         self.bgcarray = []
 
         self.kinfitparams = {'0 order': [0, 0, 0], '1st order': [0, 0, 0], '2nd order': [0, 0, 0], '3rd order': [0, 0, 0]}
@@ -230,19 +233,14 @@ class clarakinetics():
         roiimfs = comploadimseries(self.roiimsfile)
         self.cimagemin = np.nanmin(roiimfs)
         self.cimagemax = np.nanmax(roiimfs)
-        print('cimagemin = ', self.cimagemin)
-        print('cimagemax = ', self.cimagemax)
-        #min = 0
-        #max = 1
 
         self.cfnames = [f'roiims_{i}' for i in range(len(roiimfs))]
         self.cimages = []
         for i in range(len(roiimfs)):
-            self.cimages.append(clarafile(roiimfs[i], self.dx, self.dy, False))
+            self.cimages.append(clarafile(roiimfs[i], self.dx, self.dy, False, np.count_nonzero(~np.isnan(roiimfs[i]))))
             self.cimages[i].imagedata = roiimfs[i]
         
         self.cbarminmaxdict['loaded_series'] = [np.amin(roiimfs), np.amax(roiimfs)]
-
 
         # buld the rest of the GUI
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
@@ -491,7 +489,7 @@ class clarakinetics():
         cimagemin = 0
         cimagemax = 1
         for i in range(len(self.cfnames)):
-            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
+            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy, False, 0))
             min = np.amin(self.cimages[i].imagedata)
             if min < cimagemin:
                 cimagemin = min
@@ -500,9 +498,7 @@ class clarakinetics():
                 cimagemax = max
 
         self.cimagemax = cimagemax
-        print('cimagemax = ', cimagemax)
         self.cimagemin = cimagemin
-        print('cimagemin = ', cimagemin)
 
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
@@ -634,7 +630,6 @@ class clarakinetics():
             #a = np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i].imagedata))
             self.bgcarray.append(np.nansum(self.procimages[self.bgseriesname][i]) /
                                  np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
-            print(np.nansum(self.procimages[self.bgseriesname][i]), np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))       
     
     def exportprocimage(self):
         # ask for a filename
@@ -754,38 +749,42 @@ class clarakinetics():
         
         # create a new instance of NanocrystalKinetics
         self.Nckin = NanocrystalKinetics(self.imageseries, self.bgcarray)
-        
-        # add a button to compute the kinetics
-        self.kinbutton = tk.Button(self.kinframe, text='Calculate Kinetics', command=lambda: self.comptokin())
-        self.kinbutton.grid(row=2, column=4)
-
-        # add a button to plot the kinetics
-        self.plotkinbutton = tk.Button(self.kinframe, text='Plot Kinetics', command=self.Nckin.plot_kinetics)
-        self.plotkinbutton.grid(row=2, column=5)
-
-        # export kinetics image to a file
-        self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
-        self.exportkinbutton.grid(row=2, column=6)
 
         # select Kinetic Series for BG evaluation
-        self.bglabel = tk.Label(self.procplotframe, text='Kinetic Series for BG:')
-        self.bglabel.grid(row=0, column=3)
+        self.bglabel = tk.Label(self.kinframe, text='Kinetic Series for BG:')
+        self.bglabel.grid(row=1, column=4)
         self.selbgseries = tk.StringVar()
-        self.bgseries = ttk.Combobox(self.procplotframe, values=[list(self.procimages.keys())])
-        self.bgseries.grid(row=0, column=4)
-        self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
+        self.bgseries = ttk.Combobox(self.kinframe, values=[list(self.procimages.keys())])
+        self.bgseries.grid(row=1, column=5)
+        #self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
         self.bgseries.set('')
+
+        # add a checkbox to select a power correction
+        self.powercorrcheck = tk.Checkbutton(self.kinframe, text='Power correction', variable=self.powercorrvar)
+
+        # add a button to compute the kinetics
+        self.kinbutton = tk.Button(self.kinframe, text='Calculate Kinetics', command=lambda: self.comptokin())
+        self.kinbutton.grid(row=4, column=4)
+        # add a button to plot the kinetics
+        self.plotkinbutton = tk.Button(self.kinframe, text='Plot Kinetics', command=self.Nckin.plot_kinetics)
+        self.plotkinbutton.grid(row=4, column=5)
+        # export kinetics image to a file
+        self.exportkinbutton = tk.Button(self.kinframe, text='Export Kinetics', command=self.exportkinetics)
+        self.exportkinbutton.grid(row=4, column=6)
     
     def comptokin(self):
         self.deltat = float(self.dt.get())
         # check if bgseries is set
         if self.bgseries.get() == '':
             self.bgcarray = np.ones(len(self.procimages[self.procseriesselect.get()]))
-        try:
-            self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
-        except Exception as e:
-            print('Error in Nckin.compute_kinetics:', e)
-        self.buildkinfit(self.kinframe)
+        else:
+            self.setbgseries()
+        self.Nckin.bgcoutarray = self.bgcarray
+        #try:
+        self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
+        #except Exception as e:
+        #    print('Error in Nckin.compute_kinetics:', e)
+        self.buildkinfit(self.kinframe, startcol=0, startrow=5)
     
     def exportkinetics(self):
         # ask for a filename
@@ -799,16 +798,17 @@ class clarakinetics():
                 f.write(str(self.Nckin.plotxaxis[i]).replace('.', ',')+';'+str(self.Nckin.kinetics_data[i]).replace('.', ',')+'\n')
 
 class clarafile():
-    def __init__(self, file, dx, dy, load=True):
+    def __init__(self, file, dx, dy, load=True, npixels=0):
         self.fn = file
         self.dx = dx
         self.dy = dy
         self.load = load
-        self.npixels
+        self.npixels = npixels
         if self.load:
             self.imagedata, self.metadata = loadclaraimage(self.fn, True)
             self.time = datetime.strptime(self.metadata['Date and Time'], "%a %b %d %H:%M:%S.%f %Y")
             self.tint = self.metadata['Exposure Time (secs)']
+            self.npixels = np.count_nonzero(~np.isnan(self.imagedata))
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude):
     """
@@ -1086,6 +1086,9 @@ class NanocrystalKinetics:
         self.bgcoutarray = bgcoutarray
         self.kinetics_data = None
 
+    #            self.bgcarray.append(np.nansum(self.procimages[self.bgseriesname][i]) /
+    #                             np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
+
     def compute_kinetics1(self, imgs, dt, method):
         """
         Compute the kinetics by measuring the total area of the nanocrystals above a threshold.
@@ -1100,26 +1103,28 @@ class NanocrystalKinetics:
             # Ensure image is in uint8 format
             img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img # this works but raises Error ... I do not know exactly yet why
             # only copilot knows why this is not working (thanks copilot XD)
-            area = np.sum(img_uint8) # Compute the total area of detected nanocrystals
+            area = np.sum(img_uint8)/np.count_nonzero(~np.isnan(img)) # Compute the total area of detected nanocrystals
             kinetics.append(area)
             
             # Compute the total area of detected nanocrystals
             #area = np.sum(img) this will not work "because img is not a binary image" according to copilot (no error but wrong result)
             #kinetics.append(area)
         
-        self.kinetics_data = np.array(kinetics)
+        print(3)
+        print(self.bgcoutarray)
+        self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
         return self.kinetics_data
 
-    def plot_kinetics(self):
+    def plot_kinetics(self, axisfactor=1):
         """
         Plot the kinetics data.
         """
+        self.axisfactor = axisfactor
         if self.kinetics_data is None:
             raise ValueError("Kinetics data not computed. Run compute_kinetics() first.")
 
         # dreate x-axis values according to self.dt
         self.plotxaxis = np.arange(len(self.kinetics_data)) * self.dt / 60
-        self.axisfactor = 1000
         
         # create a plot
         self.kinfig, self.kinax = plt.subplots(figsize=(8, 5))
@@ -1127,7 +1132,10 @@ class NanocrystalKinetics:
         self.kinax.plot(self.plotxaxis, self.kinetics_data/self.axisfactor, marker='o', linestyle='-')
         self.kinax.set_title('Nanocrystal Kinetics')
         self.kinax.set_xlabel('Time (h)')
-        self.kinax.set_ylabel('Image counts integrated x {}'.format(self.axisfactor))
+        if axisfactor == 1:
+            self.kinax.set_ylabel('Image counts integrated')
+        else:
+            self.kinax.set_ylabel('Image counts integrated x {}'.format(self.axisfactor))
         self.kinax.tick_params(axis='both', which='major', labelsize=14)
         self.kinax.grid(True)
         self.kinfig.tight_layout()
