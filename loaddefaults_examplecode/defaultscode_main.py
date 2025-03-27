@@ -1,3 +1,4 @@
+import os
 DEFAULTS_FILE = 'defaults.txt'
 
 defaulttypes = {
