@@ -126,6 +126,8 @@ def load_defaults():
                         value = float(value)
                     elif value.lower() in ('true', 'false'):
                         value = value.lower() == 'true'
+                    elif value.lower() == 'none':
+                        value = None
                     variables[name] = value
     return variables
 
