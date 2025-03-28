@@ -140,6 +140,13 @@ def testdefaults():
             print(f'{i} not in defaults')
         if defaulttypes[i] != type(defaults[i]):
             print(f'{i} not the same type')
+    for key, value in defaults.items():
+        print(f'{key}: {value}')
+    
+    variables = load_defaults()
+    for key, value in variables.items():
+        print(f'{key}: {value}')
+
 
 # check definitions 
 if __name__ == '__main__':
@@ -149,3 +156,6 @@ if __name__ == '__main__':
     except Exception as Error:
         print('Error while loading defaults')
         print(f'Error: {Error}')
+
+    # code for testing:
+    # self.defaults = deflib.initdefaults()
