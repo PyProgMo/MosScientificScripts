@@ -489,7 +489,7 @@ class clarakinetics():
         cimagemin = 0
         cimagemax = 1
         for i in range(len(self.cfnames)):
-            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy, False, 0))
+            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy, True, 0))
             min = np.amin(self.cimages[i].imagedata)
             if min < cimagemin:
                 cimagemin = min
