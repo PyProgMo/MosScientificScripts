@@ -1,5 +1,6 @@
 import numpy as np
-import os, sys, re, cv2, copy, gzip, pickle, copy, bz2
+import pandas as pd
+import os, sys, re, cv2, copy, gzip, pickle, copy, bz2, csv
 from scipy.optimize import curve_fit
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
@@ -503,7 +504,8 @@ class clarakinetics():
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
         self.buildprocframe(self.Notebook, row=4) # build the processed images frame
-        self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
+        self.buildPlaserframe(self.Notebook, row=5) # build the laser Power processing frame
+        self.buildkinframe(self.Notebook, row=6) # build the kinetics processing frame
 
     def browsefiles(self):
         self.dir = tk.filedialog.askdirectory()
@@ -706,6 +708,44 @@ class clarakinetics():
         self.procseriesselect['values'] = list(self.procimages.keys())
         self.selkinseriesbox['values'] = list(self.procimages.keys())
         self.bgseries['values'] = list(self.procimages.keys())
+    
+    def buildPlaserframe(self, notebook, row=0):
+        self.plaserframe = tk.Frame(notebook, border=2, relief='ridge')
+        self.plaserframe.grid(row=row, column=0, sticky='nsew')
+        
+        # Add a label for the Thorlabs Powermeter output file
+        self.plaserlabel = tk.Label(self.plaserframe, text="Thorlabs Powermeter output .csv file:")
+        self.plaserlabel.grid(row=0, column=0, sticky='w')
+
+        # Add an entry to display the selected file path
+        self.plaserfilevar = tk.StringVar()
+        self.plaserentry = tk.Entry(self.plaserframe, textvariable=self.plaserfilevar, width=100)
+        self.plaserentry.grid(row=1, column=0, sticky='w')
+
+        # Add a button to browse for the file
+        self.plaserbrowsebutton = tk.Button(self.plaserframe, text="Browse", command=self.browse_plaser_file)
+        self.plaserbrowsebutton.grid(row=1, column=2, sticky='w')
+
+        # Add a button to load the selected file
+        self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
+        self.plaserloadbutton.grid(row=1, column=3, sticky='w')
+    
+    def browse_plaser_file(self):
+        # Open a file dialog to select the file
+        self.plaserfile = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if self.plaserfile:
+            self.plaserfilevar.set(self.plaserfile)
+        else:
+            self.plaserfilevar.set("")
+    
+    def load_plaser_file(self):
+        # Load the selected file into the GUI
+        self.plaserfile = self.plaserfilevar.get()
+        if self.plaserfile:
+            self.plaserdata = pd.read_csv(self.plaserfile)
+        else:
+            return
+        self.PowermeterData = read_thorlabs_Power_csv(self.plaserfile)
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
@@ -1324,4 +1364,69 @@ def k3model(t, k, A0, C=0):
     """
     denominator = np.sqrt((1 / A0**2) + 2 * k * t)
     return (1 / denominator) + C
+
+def read_thorlabs_Power_csv(filename):
+    """
+    Reads the Thorlabs powermeter data from a CSV file.
+    
+    Parameters:
+        filename (str): The path to the CSV file.
+        
+    Returns:
+        pd.DataFrame: A DataFrame containing the powermeter data.
+    """
+    delimiter = ','
+    # Read the CSV file
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+        read = True
+        i = 0
+        while read:
+            if lines[i].startswith('Delimiter Used:'):
+                delimiter = lines[i].split(':')[1].strip().split("'")[1]
+                read = False
+            elif lines[i].startswith('Samples'):
+                read = False
+                print('error while reading')
+                return 
+            i += 1
+        i+=1
+        metadata = {}
+        read = True
+        while read:
+            if len(lines[i].split()) == 0:
+                read = False
+            else:
+                ml = lines[i].strip().split(delimiter)
+                if ml[0] == '':
+                    pass
+                else: 
+                    metadata[ml[0]] = ml[1].split()
+            i += 1
+        i+=1
+        # read the keys split by the delimiter
+        keys = lines[i].strip().split(delimiter)[:-1]
+        print('keys:', keys)
+        print('metadata:', metadata)
+        # read the data lines[i+1:]
+        data = []
+        for j in keys:
+            data.append([])
+
+        print(i, len(lines))
+        for j in range(i-1, len(lines)-1):
+            # skip empty lines
+            if len(lines[j].strip()) == 0:
+                continue
+            line = lines[1+j].strip()
+            for key in range(len(keys)):
+                data[key].append(line.split(delimiter)[key])
+        
+        # convert to DataFrame
+        #df = pd.DataFrame(data, columns=keys)
+        df = {}
+        print(len(data))
+        for j in range(len(keys)):
+            df[keys[j]] = np.asarray(data[j])
+        return df
 
