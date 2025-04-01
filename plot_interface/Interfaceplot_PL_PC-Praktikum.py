@@ -28,65 +28,51 @@ class PlottingTool:
         self.load_defaults_button = tk.Button(file_buttons_frame, text="Load Defaults", command=self.load_defaults)
         self.load_defaults_button.pack(side=tk.LEFT)
         
-        # Axis range inputs
-        axis_frame = tk.Frame(self.root)
-        axis_frame.pack()
+        # Axis range inputs and tick range inputs in a single line
+        axis_and_ticks_frame = tk.Frame(self.root)
+        axis_and_ticks_frame.pack()
 
         self.x_min = tk.DoubleVar(value=490)
         self.x_max = tk.DoubleVar(value=1000.1)
         self.y_min = tk.DoubleVar(value=-0.05)
         self.y_max = tk.DoubleVar(value=1.1)
 
-        self.create_labeled_entry_with_autoscale("X Min:", self.x_min, self.auto_scale_x_min, axis_frame)
-        self.create_labeled_entry_with_autoscale("X Max:", self.x_max, self.auto_scale_x_max, axis_frame)
-        self.create_labeled_entry_with_autoscale("Y Min:", self.y_min, self.auto_scale_y_min, axis_frame)
-        self.create_labeled_entry_with_autoscale("Y Max:", self.y_max, self.auto_scale_y_max, axis_frame)
-        
-    
-        
-        # Tick range inputs
-        tick_frame = tk.Frame(self.root)
-        tick_frame.pack()
+        self.create_labeled_entry_with_autoscale("X Min:", self.x_min, self.auto_scale_x_min, axis_and_ticks_frame)
+        self.create_labeled_entry_with_autoscale("X Max:", self.x_max, self.auto_scale_x_max, axis_and_ticks_frame)
+        self.create_labeled_entry_with_autoscale("Y Min:", self.y_min, self.auto_scale_y_min, axis_and_ticks_frame)
+        self.create_labeled_entry_with_autoscale("Y Max:", self.y_max, self.auto_scale_y_max, axis_and_ticks_frame)
 
         self.x_tick = tk.DoubleVar(value=50)
         self.y_tick = tk.DoubleVar(value=0.2)
         
-        self.create_labeled_entry_in_frame("X Tick:", self.x_tick, tick_frame)
-        self.create_labeled_entry_in_frame("Y Tick:", self.y_tick, tick_frame)
+        self.create_labeled_entry_in_frame("X Tick:", self.x_tick, axis_and_ticks_frame)
+        self.create_labeled_entry_in_frame("Y Tick:", self.y_tick, axis_and_ticks_frame)
         
-        # Font settings
+        # Font settings and axis labels in a single line
+        font_and_labels_frame = tk.Frame(self.root)
+        font_and_labels_frame.pack()
+
         self.label_fontsize = tk.IntVar(value=24)
         self.tick_fontsize = tk.IntVar(value=22)
         self.legend_fontsize = tk.IntVar(value=22)
-        
-        # Create a frame for font size selection to pack widgets horizontally
-        font_frame = tk.Frame(self.root)
-        font_frame.pack()
 
-        self.create_labeled_entry_in_frame("Label Font Size:", self.label_fontsize, font_frame)
-        self.create_labeled_entry_in_frame("Tick Font Size:", self.tick_fontsize, font_frame)
-        self.create_labeled_entry_in_frame("Legend Font Size:", self.legend_fontsize, font_frame)
-        
-        # Font selection dropdown
-        font_select_frame = tk.Frame(self.root)
-        font_select_frame.pack()
-        tk.Label(font_select_frame, text="Select Font:").pack(side=tk.LEFT)
+        self.create_labeled_entry_in_frame("Label Font Size:", self.label_fontsize, font_and_labels_frame)
+        self.create_labeled_entry_in_frame("Tick Font Size:", self.tick_fontsize, font_and_labels_frame)
+        self.create_labeled_entry_in_frame("Legend Font Size:", self.legend_fontsize, font_and_labels_frame)
+
+        tk.Label(font_and_labels_frame, text="Select Font:").pack(side=tk.LEFT)
         self.font_options = ["Arial", "Times New Roman", "Courier New", "Comic Sans MS", "Verdana"]
         self.selected_font = tk.StringVar(value="Arial")
-        self.font_dropdown = ttk.Combobox(font_select_frame, textvariable=self.selected_font, values=self.font_options)
+        self.font_dropdown = ttk.Combobox(font_and_labels_frame, textvariable=self.selected_font, values=self.font_options)
         self.font_dropdown.pack(side=tk.LEFT)
-        
-        # Axis labels
-        label_frame = tk.Frame(self.root)
-        label_frame.pack()
 
         self.x_label = tk.StringVar(value="Wavelength (nm)")
         self.y_label = tk.StringVar(value="norm. Intensity")
         
-        self.create_labeled_entry_in_frame("X Axis Label:", self.x_label, label_frame)
-        self.create_labeled_entry_in_frame("Y Axis Label:", self.y_label, label_frame)
+        self.create_labeled_entry_in_frame("X Axis Label:", self.x_label, font_and_labels_frame)
+        self.create_labeled_entry_in_frame("Y Axis Label:", self.y_label, font_and_labels_frame)
         
-        # Grid, Normalize data, and Fit options
+        # Grid, Normalize data options
         options_frame = tk.Frame(self.root)
         options_frame.pack()
 
@@ -102,17 +88,23 @@ class PlottingTool:
         self.normalize_max_check = tk.Checkbutton(options_frame, text="Normalize by Max", variable=self.normalize_max)
         self.normalize_max_check.pack(side=tk.LEFT)
 
-        # Fit options
+        # Fit options in a separate line
+        fit_options_frame = tk.Frame(self.root)
+        fit_options_frame.pack()
+
         self.fit_enabled = tk.BooleanVar(value=False)
-        self.fit_check = tk.Checkbutton(options_frame, text="Enable Fit", variable=self.fit_enabled, command=self.update_fit_options)
+        self.fit_check = tk.Checkbutton(fit_options_frame, text="Enable Fit", variable=self.fit_enabled, command=self.update_fit_options)
         self.fit_check.pack(side=tk.LEFT)
 
         self.fit_type = tk.StringVar(value="Linear")
-        self.fit_dropdown = ttk.Combobox(options_frame, textvariable=self.fit_type, values=["Linear", "Polynomial", "Exponential"], state="disabled")
+        self.fit_dropdown = ttk.Combobox(fit_options_frame, textvariable=self.fit_type, 
+                                         values=["Linear", "Polynomial (x^2)", "Polynomial (x^3)", 
+                                                 "Polynomial (x^4)", "Polynomial (x^5)", "Polynomial (x^6)", 
+                                                 "Exponential"], state="disabled")
         self.fit_dropdown.pack(side=tk.LEFT)
 
         self.fit_equation = tk.StringVar(value="Fit Equation: N/A")
-        self.fit_equation_label = tk.Label(options_frame, textvariable=self.fit_equation)
+        self.fit_equation_label = tk.Label(fit_options_frame, textvariable=self.fit_equation)
         self.fit_equation_label.pack(side=tk.LEFT)
 
         # Fit line style, color, and thickness
@@ -126,16 +118,21 @@ class PlottingTool:
         self.fit_line_color = tk.StringVar(value="black")
         self.fit_line_thickness = tk.DoubleVar(value=1.5)
 
-        tk.Label(options_frame, text="Style:").pack(side=tk.LEFT)
-        self.fit_style_dropdown = ttk.Combobox(options_frame, textvariable=self.fit_line_style, values=list(self.fit_line_styles.keys()), state="readonly")
+        tk.Label(fit_options_frame, text="Style:").pack(side=tk.LEFT)
+        self.fit_style_dropdown = ttk.Combobox(fit_options_frame, textvariable=self.fit_line_style, values=list(self.fit_line_styles.keys()), state="readonly")
         self.fit_style_dropdown.pack(side=tk.LEFT)
 
-        tk.Label(options_frame, text="Color:").pack(side=tk.LEFT)
-        tk.Entry(options_frame, textvariable=self.fit_line_color).pack(side=tk.LEFT)
+        tk.Label(fit_options_frame, text="Color:").pack(side=tk.LEFT)
+        tk.Entry(fit_options_frame, textvariable=self.fit_line_color).pack(side=tk.LEFT)
 
-        tk.Label(options_frame, text="Thickness:").pack(side=tk.LEFT)
-        tk.Entry(options_frame, textvariable=self.fit_line_thickness).pack(side=tk.LEFT)
+        tk.Label(fit_options_frame, text="Thickness:").pack(side=tk.LEFT)
+        tk.Entry(fit_options_frame, textvariable=self.fit_line_thickness).pack(side=tk.LEFT)
 
+        # Fit legend label
+        self.fit_legend_label = tk.StringVar(value="Fit")
+        tk.Label(fit_options_frame, text="Fit Legend Label:").pack(side=tk.LEFT)
+        tk.Entry(fit_options_frame, textvariable=self.fit_legend_label).pack(side=tk.LEFT)
+        
         # Save path
         self.save_path = tk.StringVar(value=os.getcwd())
         self.path_label = tk.Label(self.root, text=f"Save Path: {self.save_path.get()}")
@@ -392,10 +389,12 @@ class PlottingTool:
                     coeffs = np.polyfit(data_x, data_y, 1)
                     fit_func = np.poly1d(coeffs)
                     self.fit_equation.set(f"Fit Equation: y = {coeffs[0]:.3f}x + {coeffs[1]:.3f}")
-                elif fit_type == "Polynomial":
-                    coeffs = np.polyfit(data_x, data_y, 2)
+                elif fit_type.startswith("Polynomial"):
+                    degree = int(fit_type.split("^")[1][0])  # Extract the degree from the dropdown text
+                    coeffs = np.polyfit(data_x, data_y, degree)
                     fit_func = np.poly1d(coeffs)
-                    self.fit_equation.set(f"Fit Equation: y = {coeffs[0]:.3f}x² + {coeffs[1]:.3f}x + {coeffs[2]:.3f}")
+                    equation_terms = [f"{coeff:.3f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
+                    self.fit_equation.set(f"Fit Equation: y = {' + '.join(equation_terms)}")
                 elif fit_type == "Exponential":
                     # Filter out invalid data_y values
                     valid_indices = data_y > 0
@@ -412,14 +411,14 @@ class PlottingTool:
                     fit_func = lambda x: np.exp(coeffs[1]) * np.exp(coeffs[0] * x)
                     self.fit_equation.set(f"Fit Equation: y = {np.exp(coeffs[1]):.3f}e^({coeffs[0]:.3f}x)")
 
-                # Plot the fit function with user-defined style, color, and thickness
+                # Plot the fit function with user-defined style, color, thickness, and legend label
                 fit_x = np.linspace(self.x_min.get(), self.x_max.get(), 500)
                 fit_y = fit_func(fit_x)
                 plt.plot(fit_x, fit_y, 
                          linestyle=self.fit_line_styles[self.fit_line_style.get()], 
                          color=self.fit_line_color.get(), 
                          linewidth=self.fit_line_thickness.get(), 
-                         label=f"{fit_type} Fit")
+                         label=self.fit_legend_label.get())
 
         font = self.selected_font.get()
         legend_font = {'family': font, 'weight': 'normal', 'size': self.legend_fontsize.get()}
