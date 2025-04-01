@@ -67,6 +67,9 @@ class SpectraGluingApp:
         if self.spectrum1 is None or self.spectrum2 is None:
             messagebox.showerror("Error", "Please load both spectra first.")
             return
+
+        
+        
         # Assuming spectra are 1D arrays and we simply concatenate them
         self.result = np.concatenate((self.spectrum1, self.spectrum2))
         plt.plot(self.result)
