@@ -30,16 +30,37 @@ class SpectraGluingApp:
     def open_spectrum1(self):
         file_path = filedialog.askopenfilename()
         with open(file_path, 'r') as file:
-            lines = file.readlines()
-            # Skip metadata lines
-            data_lines = [line for line in lines if line.strip() and not line.startswith("Date") and not line.startswith("Software Version") and not line.startswith("Temperature") and not line.startswith("Model") and not line.startswith("Data Type")]
-            # Extract wavelength and intensity data
+            metadata = {}
+            data_lines = []
+            for line in file:
+                if line.strip() == "":
+                    break  # Stop reading metadata on empty line
+                elif ':' in line:
+                    key, value = line.split(':', 1)
+                    metadata[key.strip()] = value.strip()
+            # Read remaining lines as data lines
+            for line in file:
+                if line.strip():  # Only add non-empty lines
+                    data_lines.append(line)
             self.spectrum1 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
         messagebox.showinfo("Info", "Spectrum 1 loaded successfully.")
 
     def open_spectrum2(self):
         file_path = filedialog.askopenfilename()
-        self.spectrum2 = np.loadtxt(file_path)
+        with open(file_path, 'r') as file:
+            metadata = {}
+            data_lines = []
+            for line in file:
+                if line.strip() == "":
+                    break  # Stop reading metadata on empty line
+                elif ':' in line:
+                    key, value = line.split(':', 1)
+                    metadata[key.strip()] = value.strip()
+            # Read remaining lines as data lines
+            for line in file:
+                if line.strip():  # Only add non-empty lines
+                    data_lines.append(line)
+            self.spectrum2 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
         messagebox.showinfo("Info", "Spectrum 2 loaded successfully.")
 
     def glue_spectra(self):
