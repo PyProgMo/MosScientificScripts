@@ -70,8 +70,39 @@ class SpectraGluingApp:
 
         
         
-        # Assuming spectra are 1D arrays and we simply concatenate them
-        self.result = np.concatenate((self.spectrum1, self.spectrum2))
+        # Extract wavelengths and values from both spectra
+        wavelengths1 = self.spectrum1[:, 0]
+        values1 = self.spectrum1[:, 1]
+        wavelengths2 = self.spectrum2[:, 0]
+        values2 = self.spectrum2[:, 1]
+
+        # Find overlapping wavelengths
+        common_wavelengths = np.intersect1d(wavelengths1, wavelengths2)
+
+        # Average the values at the overlapping wavelengths
+        averaged_values = []
+        for wl in common_wavelengths:
+            idx1 = np.where(wavelengths1 == wl)[0][0]
+            idx2 = np.where(wavelengths2 == wl)[0][0]
+            avg_value = (values1[idx1] + values2[idx2]) / 2
+            averaged_values.append((wl, avg_value))
+
+        # Create final spectrum
+        final_wavelengths = np.union1d(wavelengths1, wavelengths2)
+        final_values = np.zeros_like(final_wavelengths)
+
+        for wl, avg_value in averaged_values:
+            final_values[np.where(final_wavelengths == wl)] = avg_value
+
+        # Fill in non-overlapping values
+        for wl in wavelengths1:
+            if wl not in common_wavelengths:
+                final_values[np.where(final_wavelengths == wl)] = values1[np.where(wavelengths1 == wl)]
+        for wl in wavelengths2:
+            if wl not in common_wavelengths:
+                final_values[np.where(final_wavelengths == wl)] = values2[np.where(wavelengths2 == wl)]
+
+        self.result = np.column_stack((final_wavelengths, final_values))
         plt.plot(self.result)
         plt.title("Glued Spectrum")
         plt.show()
