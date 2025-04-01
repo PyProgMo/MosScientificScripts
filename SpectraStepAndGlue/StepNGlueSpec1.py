@@ -87,7 +87,13 @@ class SpectraGluingApp:
             avg_value = (values1[idx1] + values2[idx2]) / 2
             averaged_values.append((wl, avg_value))
 
-        # Create final spectrum
+        # Create a global wavelength array based on the first spectrum
+        global_wavelengths = np.linspace(np.min(wavelengths1), np.max(wavelengths1), num=1000)
+        
+        # Interpolate the second spectrum according to the global wavelengths
+        interpolated_values2 = np.interp(global_wavelengths, wavelengths2, values2)
+        
+        # Create final spectrum with interpolated values
         final_wavelengths = np.union1d(wavelengths1, wavelengths2)
         final_values = np.zeros_like(final_wavelengths)
 
