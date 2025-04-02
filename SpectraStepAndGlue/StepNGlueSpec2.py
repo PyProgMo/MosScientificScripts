@@ -164,25 +164,28 @@ class SpectraGluingApp:
             return S1, S2
 
         # Get start and end of overlap
-        wl_start = np.min(overlap)
-        wl_end = np.max(overlap)
-        wl_middle = (wl_start + wl_end) / 2
+        wl1s = S1['WL'].iloc[0]
+        wl1e = S1['WL'].iloc[-1]
+        wl2s = S2['WL'].iloc[0]
+        wl2e = S2['WL'].iloc[-1]
 
-        # Determine direction of arrays
-        dir_s1 = 1 if S1['WL'].iloc[-1] > S1['WL'].iloc[0] else -1
-        dir_s2 = 1 if S2['WL'].iloc[-1] > S2['WL'].iloc[0] else -1
-
-        # Remove appropriate half of overlap from each spectrum
-        if dir_s1 > 0:
-            S1 = S1[S1['WL'] <= wl_middle]
-        else:
-            S1 = S1[S1['WL'] >= wl_middle]
-
-        if dir_s2 > 0:
-            S2 = S2[S2['WL'] >= wl_middle]
-        else:
-            S2 = S2[S2['WL'] <= wl_middle]
-
+        # Determine and remove overlapping wavelengths
+        # 1st case: S1 is before S2
+        if wl1s < wl2e:
+            if wl1e > wl2s:
+                overlapcenter = (wl1e + wl2s) / 2
+                S1 = S1[S1['WL'] < overlapcenter]
+                S1 = S1[S1['counts'] <= S1[S1['WL'] < overlapcenter]['counts'].max()]
+                S2 = S2[S2['WL'] > overlapcenter]
+                S2 = S2[S2['counts'] <= S2[S2['WL'] > overlapcenter]['counts'].max()]
+        # 2nd case: S1 is after S2
+        elif wl2s < wl1e:
+            if wl2e > wl1s:
+                overlapcenter = (wl2e + wl1s) / 2
+                S2 = S2[S2['WL'] < overlapcenter]
+                S2 = S2[S2['counts'] <= S2[S2['WL'] < overlapcenter]['counts'].max()]
+                S1 = S1[S1['WL'] > overlapcenter]     
+                S2 = S2[S2['counts'] <= S2[S2['WL'] > overlapcenter]['counts'].max()]
         return S1, S2
 
 if __name__ == "__main__":
