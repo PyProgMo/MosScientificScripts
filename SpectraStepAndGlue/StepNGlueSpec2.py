@@ -92,6 +92,7 @@ class SpectraGluingApp:
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
         plt.plot(self.dfs2['WL'], self.dfs2['counts'], label='Spectrum 2')
         plt.show()
+        sys.exit()
 
         # Find overlapping wavelengths
         common_wavelengths = np.intersect1d(wavelengths1, wavelengths2)
@@ -151,7 +152,7 @@ class SpectraGluingApp:
             for key, value in writemetadata.items():
                 f.write(f"{key} = {value}\n")
             f.write("\n")
-            f.write("Wavelength\tSpectrumeter Counts\n")
+            f.write("Wavelength\tSpectrometer Counts\n")
             for row in self.result:
                 f.write(f"{row[0]}\t{row[1]}\n")
         print("Result saved successfully.")
