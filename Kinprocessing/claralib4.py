@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime
+import Thorlabs_Pt_reader as ThorPt
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -742,10 +743,25 @@ class clarakinetics():
         # Load the selected file into the GUI
         self.plaserfile = self.plaserfilevar.get()
         if self.plaserfile:
-            self.plaserdata = pd.read_csv(self.plaserfile)
+            tlpraw = ThorPt.read_thorlabs_powermeter(self.plaserfile)
         else:
             return
-        self.PowermeterData = read_thorlabs_Power_csv(self.plaserfile)
+        if self.tlpraw is None:
+            print("Error loading Thorlabs Powermeter file")
+            return
+        else:
+            self.Laserpower = ThorPt.obtain_power_data(tlpraw)
+                
+    def buildpowercorrframe(self, notebook, row=0):
+        # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
+        self.powercorrframe = tk.Frame(notebook, border=2, relief='ridge')
+        self.powercorrframe.grid(row=row, column=0, sticky='nsew')
+
+        # add a label to the frame
+        self.powercorrlabel = tk.Label(self.powercorrframe, text='Select starting time for power correction:')
+        self.powercorrlabel.grid(row=0, column=0, sticky='w')
+
+        
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
