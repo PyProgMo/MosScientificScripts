@@ -69,6 +69,8 @@ class SpectraGluingApp:
             print("Please load both spectra first.")
             return
 
+        print(wavelengths1, values1)
+        print(wavelengths2, values2)
         # Extract wavelengths and values from both spectra
         wavelengths1 = self.spectrum1[:, 0]
         values1 = self.spectrum1[:, 1]
@@ -92,46 +94,15 @@ class SpectraGluingApp:
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
         plt.plot(self.dfs2['WL'], self.dfs2['counts'], label='Spectrum 2')
         plt.show()
-        sys.exit()
 
-        # Find overlapping wavelengths
-        common_wavelengths = np.intersect1d(wavelengths1, wavelengths2)
+        # combine the two spectra
+        # Create a new DataFrame with the combined data
+        combined_data = pd.concat([self.dfs1, self.dfs2], ignore_index=True)
+        combined_data = combined_data.sort_values('WL').reset_index(drop=True)
 
-        # Average the values at the overlapping wavelengths
-        averaged_values = []
-        for wl in common_wavelengths:
-            idx1 = np.where(wavelengths1 == wl)[0][0]
-            idx2 = np.where(wavelengths2 == wl)[0][0]
-            avg_value = (values1[idx1] + values2[idx2]) / 2
-            averaged_values.append((wl, avg_value))
-
-        # Create a global wavelength array based on the first spectrum
-        #global_wavelengths = np.linspace(np.min(wavelengths1), np.max(wavelengths1), num=1000)
-        # Interpolate the second spectrum according to the global wavelengths
-        #interpolated_values2 = np.interp(global_wavelengths, wavelengths2, values2)
+        self.results = combined_data.values
         
-        # Create final spectrum with interpolated values
-        final_wavelengths = np.union1d(wavelengths1, wavelengths2)
-        final_values = np.zeros_like(final_wavelengths)
 
-        for wl, avg_value in averaged_values:
-            final_values[np.where(final_wavelengths == wl)] = avg_value
-
-        # Fill in non-overlapping values
-        for wl in wavelengths1:
-            if wl not in common_wavelengths:
-                final_values[np.where(final_wavelengths == wl)] = values1[np.where(wavelengths1 == wl)]
-        for wl in wavelengths2:
-            if wl not in common_wavelengths:
-                final_values[np.where(final_wavelengths == wl)] = values2[np.where(wavelengths2 == wl)]
-        
-        self.result = np.column_stack((final_wavelengths, final_values))
-        plt.plot(self.result)
-        # plot final_values vs final_wavelengths
-        #plt.plot(final_wavelengths, final_values, label='Glued Spectrum')
-        plt.title("Glued Spectrum")
-        plt.show()
-        print("Spectra glued successfully.")
 
     def save_result(self):
         writemetadata = {}
@@ -153,8 +124,8 @@ class SpectraGluingApp:
                 f.write(f"{key} = {value}\n")
             f.write("\n")
             f.write("Wavelength\tSpectrometer Counts\n")
-            for row in self.result:
-                f.write(f"{row[0]}\t{row[1]}\n")
+            for _, row in self.results.iterrows():
+                f.write(f"{row['WL']}\t{row['counts']}\n")
         print("Result saved successfully.")
     
     def removeoverlap(self, S1, S2):
