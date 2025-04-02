@@ -3,10 +3,12 @@ from tkinter import filedialog, messagebox
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from tkinter import ttk
 
 class SpectraGluingApp:
     def __init__(self, master):
         self.master = master
+        self.gluemodes = ['remove overlap', 'iterpolate overlap']
         master.title("Spectra Gluing Application")
 
         self.label = tk.Label(master, text="Open two spectra files to glue them together.")
@@ -17,6 +19,14 @@ class SpectraGluingApp:
 
         self.open_button2 = tk.Button(master, text="Open Spectrum 2", command=self.openspectrum2)
         self.open_button2.pack()
+
+        # Create a dropdown menu for gluing modes
+        self.gluemode_label = tk.Label(master, text="Select Glue Mode:")
+        self.gluemode_label.pack()
+        self.gluemode_var = tk.StringVar(master)
+        self.gluemode_var.set(self.gluemodes[0])
+        self.gluemode_menu = ttk.Combobox(master, textvariable=self.gluemode_var, values=self.gluemodes)
+        self.gluemode_menu.pack()    
 
         self.glue_button = tk.Button(master, text="Glue Spectra", command=self.glue_spectra)
         self.glue_button.pack()
@@ -71,9 +81,10 @@ class SpectraGluingApp:
 
         self.dfs2 = pd.DataFrame({'WL': wavelengths2, 'counts': values2})
         # remove overlapping wavelengths from spectrum 2
-        print('removing overlapping wavelengths')
-        self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
-        #self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
+        if self.gluemode_var.get() == 'remove overlap':
+            self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
+        elif self.gluemode_var.get() == 'iterpolate overlap':
+            self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
 
         # plot dfs1 and dfs2
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
