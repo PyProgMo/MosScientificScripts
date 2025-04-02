@@ -56,8 +56,6 @@ class SpectraGluingApp:
             print("Please load both spectra first.")
             return
 
-        print(self.spectrum1)
-        print(self.spectrum2)
         # Extract wavelengths and values from both spectra
         wavelengths1 = self.spectrum1[:, 0]
         values1 = self.spectrum1[:, 1]
@@ -99,7 +97,7 @@ class SpectraGluingApp:
         if len(self.metadata2) > 0:
             for i in self.metadata2.keys():
                 writemetadata[i+' Spec2'] = self.metadata2[i]
-        writemetadata['Glued'] = 'True'
+        writemetadata['#Glued'] = 'True'
 
         if self.result is None:
             print("No result to save.")
