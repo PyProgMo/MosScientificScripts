@@ -12,10 +12,10 @@ class SpectraGluingApp:
         self.label = tk.Label(master, text="Open two spectra files to glue them together.")
         self.label.pack()
 
-        self.open_button1 = tk.Button(master, text="Open Spectrum 1", command=self.open_spectrum1)
+        self.open_button1 = tk.Button(master, text="Open Spectrum 1", command=self.openspectrum1)
         self.open_button1.pack()
 
-        self.open_button2 = tk.Button(master, text="Open Spectrum 2", command=self.open_spectrum2)
+        self.open_button2 = tk.Button(master, text="Open Spectrum 2", command=self.openspectrum2)
         self.open_button2.pack()
 
         self.glue_button = tk.Button(master, text="Glue Spectra", command=self.glue_spectra)
@@ -27,14 +27,20 @@ class SpectraGluingApp:
         self.spectrum1 = None
         self.spectrum2 = None
         self.result = None
+    
+    def openspectrum1(self):
+        self.spectrum1 = self.open_spectrum()
+    
+    def openspectrum2(self):
+        self.spectrum2 = self.open_spectrum()
 
-    def open_spectrum1(self):
+    def open_spectrum(self):
         file_path = filedialog.askopenfilename()
         with open(file_path, 'r') as file:
             self.metadata1 = {}
             data_lines = []
             for line in file:
-                if line.strip() == "":
+                if line.strip() == "" or len(line.split(':')) < 2:
                     break  # Stop reading metadata on empty line
                 elif ':' in line:
                     key, value = line.split(':', 1)
@@ -43,9 +49,7 @@ class SpectraGluingApp:
             for line in file:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
-            self.spectrum1 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
-        print(self.spectrum1)
-        print("Spectrum 1 loaded successfully.")
+        return np.array([list(map(float, line.split('\t'))) for line in data_lines]) 
 
     def open_spectrum2(self):
         file_path = filedialog.askopenfilename()
@@ -213,8 +217,8 @@ class SpectraGluingApp:
                 S1['counts'] = S1['counts'].astype(float)
                 S2['counts'] = S2['counts'].astype(float)
 
-                print(S1)
-                print(S2)
+                print('S1', S1)
+                print('S2', S2)
                 
                 # Add interpolated region to S1
                 overlap_df = pd.DataFrame({'WL': overlap_points, 'counts': interp_counts})
