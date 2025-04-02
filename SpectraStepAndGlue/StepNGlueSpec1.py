@@ -86,10 +86,9 @@ class SpectraGluingApp:
             averaged_values.append((wl, avg_value))
 
         # Create a global wavelength array based on the first spectrum
-        global_wavelengths = np.linspace(np.min(wavelengths1), np.max(wavelengths1), num=1000)
-        
+        #global_wavelengths = np.linspace(np.min(wavelengths1), np.max(wavelengths1), num=1000)
         # Interpolate the second spectrum according to the global wavelengths
-        interpolated_values2 = np.interp(global_wavelengths, wavelengths2, values2)
+        #interpolated_values2 = np.interp(global_wavelengths, wavelengths2, values2)
         
         # Create final spectrum with interpolated values
         final_wavelengths = np.union1d(wavelengths1, wavelengths2)
@@ -115,9 +114,9 @@ class SpectraGluingApp:
     def save_result(self):
         writemetadata = {}
         for i in self.metadata1.keys():
-            writemetadata[i+' 1'] = self.metadata1[i]
+            writemetadata[i+' Spec1'] = self.metadata1[i]
         for i in self.metadata2.keys():
-            writemetadata[i+' 2'] = self.metadata2[i]
+            writemetadata[i+' Spec2'] = self.metadata2[i]
         writemetadata['Glued'] = 'True'
 
         if self.result is None:
@@ -135,6 +134,13 @@ class SpectraGluingApp:
             for row in self.result:
                 f.write(f"{row[0]}\t{row[1]}\n")
         print("Result saved successfully.")
+    
+    def specremoverlap(self, wl1, wl2, val1, val2):
+        # Remove overlapping values from the spectra
+        wl1start = wl1[0]
+        wl1end = wl1[-1]
+        wl2start = wl2[0]
+        wl2end = wl2[-1]
 
 if __name__ == "__main__":
     root = tk.Tk()
