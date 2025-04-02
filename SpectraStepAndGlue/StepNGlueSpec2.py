@@ -18,7 +18,7 @@ class SpectraGluingApp:
         self.open_button2 = tk.Button(master, text="Open Spectrum 2", command=self.open_spectrum2)
         self.open_button2.pack()
 
-        self.glue_button = tk.Button(master, text="Glue Spectra", command=self.interpoverlap)
+        self.glue_button = tk.Button(master, text="Glue Spectra", command=self.glue_spectra)
         self.glue_button.pack()
 
         self.save_button = tk.Button(master, text="Save Result", command=self.save_result)
@@ -85,7 +85,8 @@ class SpectraGluingApp:
         self.dfs2 = pd.DataFrame({'WL': wavelengths2, 'counts': values2})
         # remove overlapping wavelengths from spectrum 2
         print('removing overlapping wavelengths')
-        self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
+        #self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
+        self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
 
         # plot dfs1 and dfs2
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
@@ -227,6 +228,19 @@ class SpectraGluingApp:
                 # Create new dataframe with interpolated region
                 S1 = S1[S1['WL'] < overlap_start]
                 S2 = S2[S2['WL'] > overlap_end]
+
+                # make sure S1 and S2 are sorted by WL
+                S1 = S1.sort_values('WL')
+                S2 = S2.sort_values('WL')
+
+                # make sure S1 ['WL'] and S2 ['WL'] are of type float
+                S1['WL'] = S1['WL'].astype(float)
+                S2['WL'] = S2['WL'].astype(float)
+                S1['counts'] = S1['counts'].astype(float)
+                S2['counts'] = S2['counts'].astype(float)
+
+                print(S1)
+                print(S2)
                 
                 # Add interpolated region to S1
                 overlap_df = pd.DataFrame({'WL': overlap_points, 'counts': interp_counts})
