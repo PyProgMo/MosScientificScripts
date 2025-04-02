@@ -44,6 +44,7 @@ class SpectraGluingApp:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
             self.spectrum1 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
+        print(self.spectrum1)
         print("Spectrum 1 loaded successfully.")
 
     def open_spectrum2(self):
@@ -62,6 +63,7 @@ class SpectraGluingApp:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
             self.spectrum2 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
+        print(self.spectrum2)
         print("Spectrum 2 loaded successfully.")
 
     def glue_spectra(self):
@@ -69,8 +71,8 @@ class SpectraGluingApp:
             print("Please load both spectra first.")
             return
 
-        print(wavelengths1, values1)
-        print(wavelengths2, values2)
+        print(self.spectrum1)
+        print(self.spectrum2)
         # Extract wavelengths and values from both spectra
         wavelengths1 = self.spectrum1[:, 0]
         values1 = self.spectrum1[:, 1]
