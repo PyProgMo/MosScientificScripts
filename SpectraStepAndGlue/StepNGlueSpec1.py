@@ -30,46 +30,44 @@ class SpectraGluingApp:
     def open_spectrum1(self):
         file_path = filedialog.askopenfilename()
         with open(file_path, 'r') as file:
-            metadata = {}
+            self.metadata1 = {}
             data_lines = []
             for line in file:
                 if line.strip() == "":
                     break  # Stop reading metadata on empty line
                 elif ':' in line:
                     key, value = line.split(':', 1)
-                    metadata[key.strip()] = value.strip()
+                    self.metadata1[key.strip()] = value.strip()
             # Read remaining lines as data lines
             for line in file:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
             self.spectrum1 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
-        messagebox.showinfo("Info", "Spectrum 1 loaded successfully.")
+        print("Spectrum 1 loaded successfully.")
 
     def open_spectrum2(self):
         file_path = filedialog.askopenfilename()
         with open(file_path, 'r') as file:
-            metadata = {}
+            self.metadata2 = {}
             data_lines = []
             for line in file:
                 if line.strip() == "":
                     break  # Stop reading metadata on empty line
                 elif ':' in line:
                     key, value = line.split(':', 1)
-                    metadata[key.strip()] = value.strip()
+                    self.metadata2[key.strip()] = value.strip()
             # Read remaining lines as data lines
             for line in file:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
             self.spectrum2 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
-        messagebox.showinfo("Info", "Spectrum 2 loaded successfully.")
+        print("Spectrum 2 loaded successfully.")
 
     def glue_spectra(self):
         if self.spectrum1 is None or self.spectrum2 is None:
             messagebox.showerror("Error", "Please load both spectra first.")
             return
 
-        
-        
         # Extract wavelengths and values from both spectra
         wavelengths1 = self.spectrum1[:, 0]
         values1 = self.spectrum1[:, 1]
@@ -112,17 +110,31 @@ class SpectraGluingApp:
         plt.plot(self.result)
         plt.title("Glued Spectrum")
         plt.show()
-        messagebox.showinfo("Info", "Spectra glued successfully.")
+        print("Spectra glued successfully.")
 
     def save_result(self):
+        writemetadata = {}
+        for i in self.metadata1.keys():
+            writemetadata[i+' 1'] = self.metadata1[i]
+        for i in self.metadata2.keys():
+            writemetadata[i+' 2'] = self.metadata2[i]
+        writemetadata['Glued'] = 'True'
+
         if self.result is None:
-            messagebox.showerror("Error", "No result to save.")
+            print("No result to save.")
             return
         file_path = filedialog.asksaveasfilename(defaultextension=".txt",
                                                    filetypes=[("Text files", "*.txt"),
                                                               ("All files", "*.*")])
-        np.savetxt(file_path, self.result)
-        messagebox.showinfo("Info", "Result saved successfully.")
+        
+        with open(file_path, 'w') as f:
+            for key, value in writemetadata.items():
+                f.write(f"{key} = {value}\n")
+            f.write("\n")
+            f.write("Wavelength\tSpectrumeter Counts\n")
+            for row in self.result:
+                f.write(f"{row[0]}\t{row[1]}\n")
+        print("Result saved successfully.")
 
 if __name__ == "__main__":
     root = tk.Tk()
