@@ -29,46 +29,27 @@ class SpectraGluingApp:
         self.result = None
     
     def openspectrum1(self):
-        self.spectrum1 = self.open_spectrum()
+        self.spectrum1, self.metadata1 = self.open_spectrum()
     
     def openspectrum2(self):
-        self.spectrum2 = self.open_spectrum()
+        self.spectrum2, self.metadata2 = self.open_spectrum()
 
     def open_spectrum(self):
         file_path = filedialog.askopenfilename()
         with open(file_path, 'r') as file:
-            self.metadata1 = {}
+            metadata = {}
             data_lines = []
             for line in file:
                 if line.strip() == "" or len(line.split(':')) < 2:
                     break  # Stop reading metadata on empty line
                 elif ':' in line:
                     key, value = line.split(':', 1)
-                    self.metadata1[key.strip()] = value.strip()
+                    metadata[key.strip()] = value.strip()
             # Read remaining lines as data lines
             for line in file:
                 if line.strip():  # Only add non-empty lines
                     data_lines.append(line)
-        return np.array([list(map(float, line.split('\t'))) for line in data_lines]) 
-
-    def open_spectrum2(self):
-        file_path = filedialog.askopenfilename()
-        with open(file_path, 'r') as file:
-            self.metadata2 = {}
-            data_lines = []
-            for line in file:
-                if line.strip() == "":
-                    break  # Stop reading metadata on empty line
-                elif ':' in line:
-                    key, value = line.split(':', 1)
-                    self.metadata2[key.strip()] = value.strip()
-            # Read remaining lines as data lines
-            for line in file:
-                if line.strip():  # Only add non-empty lines
-                    data_lines.append(line)
-            self.spectrum2 = np.array([list(map(float, line.split('\t'))) for line in data_lines])
-        print(self.spectrum2)
-        print("Spectrum 2 loaded successfully.")
+        return np.array([list(map(float, line.split('\t'))) for line in data_lines]), metadata
 
     def glue_spectra(self):
         if self.spectrum1 is None or self.spectrum2 is None:
@@ -106,16 +87,18 @@ class SpectraGluingApp:
         combined_data = pd.concat([self.dfs1, self.dfs2], ignore_index=True)
         combined_data = combined_data.sort_values('WL').reset_index(drop=True)
 
-        self.results = combined_data.values
+        self.result = combined_data
         
 
 
     def save_result(self):
         writemetadata = {}
-        for i in self.metadata1.keys():
-            writemetadata[i+' Spec1'] = self.metadata1[i]
-        for i in self.metadata2.keys():
-            writemetadata[i+' Spec2'] = self.metadata2[i]
+        if len(self.metadata1) > 0:
+            for i in self.metadata1.keys():
+                writemetadata[i+' Spec1'] = self.metadata1[i]
+        if len(self.metadata2) > 0:
+            for i in self.metadata2.keys():
+                writemetadata[i+' Spec2'] = self.metadata2[i]
         writemetadata['Glued'] = 'True'
 
         if self.result is None:
@@ -130,7 +113,7 @@ class SpectraGluingApp:
                 f.write(f"{key} = {value}\n")
             f.write("\n")
             f.write("Wavelength\tSpectrometer Counts\n")
-            for _, row in self.results.iterrows():
+            for _, row in self.result.iterrows():
                 f.write(f"{row['WL']}\t{row['counts']}\n")
         print("Result saved successfully.")
     
