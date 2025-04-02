@@ -74,8 +74,8 @@ class SpectraGluingApp:
         self.dfs2 = pd.DataFrame({'WL': wavelengths2, 'counts': values2})
         # remove overlapping wavelengths from spectrum 2
         print('removing overlapping wavelengths')
-        #self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
-        self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
+        self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
+        #self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
 
         # plot dfs1 and dfs2
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
