@@ -168,11 +168,13 @@ class SpectraGluingApp:
         wl1e = S1['WL'].iloc[-1]
         wl2s = S2['WL'].iloc[0]
         wl2e = S2['WL'].iloc[-1]
+        print('wl1s:', wl1s, 'wl1e:', wl1e, 'wl2s:', wl2s, 'wl2e:', wl2e)
 
         # Determine and remove overlapping wavelengths
         # 1st case: S1 is before S2
         if wl1s < wl2e:
             if wl1e > wl2s:
+                print('case 1')
                 overlapcenter = (wl1e + wl2s) / 2
                 S1 = S1[S1['WL'] < overlapcenter]
                 S1 = S1[S1['counts'] <= S1[S1['WL'] < overlapcenter]['counts'].max()]
@@ -181,6 +183,7 @@ class SpectraGluingApp:
         # 2nd case: S1 is after S2
         elif wl2s < wl1e:
             if wl2e > wl1s:
+                print('case 2')
                 overlapcenter = (wl2e + wl1s) / 2
                 S2 = S2[S2['WL'] < overlapcenter]
                 S2 = S2[S2['counts'] <= S2[S2['WL'] < overlapcenter]['counts'].max()]
