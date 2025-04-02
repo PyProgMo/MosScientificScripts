@@ -73,6 +73,8 @@ class SpectraGluingApp:
         values1 = self.spectrum1[:, 1]
         wavelengths2 = self.spectrum2[:, 0]
         values2 = self.spectrum2[:, 1]
+        # remove overlapping wavelengths from spectrum 2
+        wavelengths2, values2 = self.removeoverlap(wavelengths1, wavelengths2, values2)
 
         # Find overlapping wavelengths
         common_wavelengths = np.intersect1d(wavelengths1, wavelengths2)
@@ -98,13 +100,14 @@ class SpectraGluingApp:
             final_values[np.where(final_wavelengths == wl)] = avg_value
 
         # Fill in non-overlapping values
+        '''
         for wl in wavelengths1:
             if wl not in common_wavelengths:
                 final_values[np.where(final_wavelengths == wl)] = values1[np.where(wavelengths1 == wl)]
         for wl in wavelengths2:
             if wl not in common_wavelengths:
                 final_values[np.where(final_wavelengths == wl)] = values2[np.where(wavelengths2 == wl)]
-
+        '''
         self.result = np.column_stack((final_wavelengths, final_values))
         plt.plot(self.result)
         plt.title("Glued Spectrum")
@@ -135,12 +138,14 @@ class SpectraGluingApp:
                 f.write(f"{row[0]}\t{row[1]}\n")
         print("Result saved successfully.")
     
-    def specremoverlap(self, wl1, wl2, val1, val2):
-        # Remove overlapping values from the spectra
-        wl1start = wl1[0]
-        wl1end = wl1[-1]
-        wl2start = wl2[0]
-        wl2end = wl2[-1]
+    def removeoverlap(self, wl1, wl2, spec2):
+        # Remove overlapping wavelengths
+        overlap = np.intersect1d(wl1, wl2)
+        # overlap is the common wavelengths between wl1 and wl2
+        # remoe the overlapping wavelengths from wl2 and spec2
+        wl2 = np.setdiff1d(wl2, overlap)
+        spec2 = np.setdiff1d(spec2, overlap)
+        return wl2, spec2
 
 if __name__ == "__main__":
     root = tk.Tk()
