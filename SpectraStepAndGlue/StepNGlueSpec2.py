@@ -97,8 +97,6 @@ class SpectraGluingApp:
         combined_data = combined_data.sort_values('WL').reset_index(drop=True)
 
         self.result = combined_data
-        
-
 
     def save_result(self):
         writemetadata = {}

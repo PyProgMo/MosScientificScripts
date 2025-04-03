@@ -172,6 +172,8 @@ class clarakinetics():
         self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
         self.powercorrvar = tk.IntVar()
+        self.selbgseries = tk.StringVar()
+
         self.powercorrvar.set(1)
 
         self.bgcarray = []
@@ -248,7 +250,8 @@ class clarakinetics():
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
         self.buildprocframe(self.Notebook, row=4) # build the processed images frame
-        self.buildkinframe(self.Notebook, row=5) # build the kinetics processing frame
+        self.buildPlaserframe(self.Notebook, row=5) # build the laser Power processing frame
+        self.buildkinframe(self.Notebook, row=6) # build the kinetics processing frame
 
         self.imageseries = []
         for i in range(len(roiimfs)):
@@ -761,7 +764,7 @@ class clarakinetics():
         self.powercorrlabel = tk.Label(self.powercorrframe, text='Select starting time for power correction:')
         self.powercorrlabel.grid(row=0, column=0, sticky='w')
 
-        
+
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
@@ -809,7 +812,6 @@ class clarakinetics():
         # select Kinetic Series for BG evaluation
         self.bglabel = tk.Label(self.kinframe, text='Kinetic Series for BG:')
         self.bglabel.grid(row=1, column=4)
-        self.selbgseries = tk.StringVar()
         self.bgseries = ttk.Combobox(self.kinframe, values=[list(self.procimages.keys())])
         self.bgseries.grid(row=1, column=5)
         #self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
@@ -832,12 +834,12 @@ class clarakinetics():
         self.deltat = float(self.dt.get())
         # check if bgseries is set
         if self.bgseries.get() == '':
-            self.bgcarray = np.ones(len(self.procimages[self.procseriesselect.get()]))
+            self.bgcarray = np.zeros(len(self.procimages[self.procseriesselect.get()]))
         else:
             self.setbgseries()
         self.Nckin.bgcoutarray = self.bgcarray
         #try:
-        self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.procseriesselect.get()], float(self.dt.get()), self.kinmethod.get())
+        self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.selkinseries.get()], float(self.dt.get()), self.kinmethod.get())
         #except Exception as e:
         #    print('Error in Nckin.compute_kinetics:', e)
         self.buildkinfit(self.kinframe, startcol=0, startrow=5)
@@ -1076,7 +1078,9 @@ class Roihandler():
                                             [self.roi_points[-2][1], y], 'r-')
                 self.roi_lines.append(line_plot)
             plt.draw()
-
+        self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
+        self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
+        
     def clear_roi_points(self):
         self.roi_points.clear()
 
@@ -1145,7 +1149,7 @@ class NanocrystalKinetics:
     #            self.bgcarray.append(np.nansum(self.procimages[self.bgseriesname][i]) /
     #                             np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
 
-    def compute_kinetics1(self, imgs, dt, method):
+    def compute_kinetics1(self, imgs, dt, method, bgseries=None):
         """
         Compute the kinetics by measuring the total area of the nanocrystals above a threshold.
         :param threshold: Intensity threshold to binarize images.
@@ -1166,8 +1170,8 @@ class NanocrystalKinetics:
             #area = np.sum(img) this will not work "because img is not a binary image" according to copilot (no error but wrong result)
             #kinetics.append(area)
         
-        print(3)
-        print(self.bgcoutarray)
+        for img in 
+        
         self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
         return self.kinetics_data
 
