@@ -43,14 +43,11 @@ def read_thorlabs_powermeter(filename):
         i+=1
         # read the keys split by the delimiter
         keys = lines[i].strip().split(delimiter)[:-1]
-        print('keys:', keys)
-        print('metadata:', metadata)
         # read the data lines[i+1:]
         data = []
         for j in keys:
             data.append([])
 
-        print(i, len(lines))
         for j in range(i, len(lines)-1):
             # skip empty lines
             if len(lines[j].strip()) == 0:
@@ -60,23 +57,21 @@ def read_thorlabs_powermeter(filename):
                 data[key].append(line.split(delimiter)[key])
         
         # convert to DataFrame
-        #df = pd.DataFrame(data, columns=keys)
         df = pd.DataFrame()
-        print(len(data))
         for j in range(len(keys)):
             # Strip whitespace from keys
             clean_key = keys[j].strip()
             df[clean_key] = np.asarray(data[j])
         return df
 
-def obtain_power_data():
+def obtain_power_data(filename='Sample.csv'):
     """
     Obtains power data from the Thorlabs powermeter and returns a DataFrame with time and power.
     
     Returns:
         pd.DataFrame: A DataFrame containing the time in seconds and power values.
     """
-    df = read_thorlabs_powermeter('Sample.csv')
+    df = read_thorlabs_powermeter(filename)
 
     print('df:', df['Date (MM/dd/yyyy)'][:10])
     date_series = pd.to_datetime(pd.Series(df['Date (MM/dd/yyyy)'].str.strip()).astype(str), format='%m/%d/%Y')  # Convert date strings to datetime

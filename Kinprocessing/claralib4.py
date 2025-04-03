@@ -12,6 +12,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime
 import Thorlabs_Pt_reader as ThorPt
+import plotting_app_tzero as ptzero
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -173,6 +174,7 @@ class clarakinetics():
         self.loadfnvar = tk.StringVar()
         self.powercorrvar = tk.IntVar()
         self.selbgseries = tk.StringVar()
+        self.PLaserTzero = tk.DoubleVar()
 
         self.powercorrvar.set(1)
 
@@ -745,15 +747,14 @@ class clarakinetics():
     def load_plaser_file(self):
         # Load the selected file into the GUI
         self.plaserfile = self.plaserfilevar.get()
-        if self.plaserfile:
-            tlpraw = ThorPt.read_thorlabs_powermeter(self.plaserfile)
-        else:
-            return
-        if self.tlpraw is None:
-            print("Error loading Thorlabs Powermeter file")
-            return
-        else:
-            self.Laserpower = ThorPt.obtain_power_data(tlpraw)
+        try:
+            self.Laserpower = ThorPt.obtain_power_data(self.plaserfile)
+        except Exception as e:
+            print("Error loading Thorlabs Powermeter file:", e)
+
+        Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+        # testasdf123 continue here
+        
                 
     def buildpowercorrframe(self, notebook, row=0):
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
@@ -1165,12 +1166,6 @@ class NanocrystalKinetics:
             # only copilot knows why this is not working (thanks copilot XD)
             area = np.sum(img_uint8)/np.count_nonzero(~np.isnan(img)) # Compute the total area of detected nanocrystals
             kinetics.append(area)
-            
-            # Compute the total area of detected nanocrystals
-            #area = np.sum(img) this will not work "because img is not a binary image" according to copilot (no error but wrong result)
-            #kinetics.append(area)
-        
-        for img in 
         
         self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
         return self.kinetics_data
@@ -1426,14 +1421,12 @@ def read_thorlabs_Power_csv(filename):
         i+=1
         # read the keys split by the delimiter
         keys = lines[i].strip().split(delimiter)[:-1]
-        print('keys:', keys)
-        print('metadata:', metadata)
+
         # read the data lines[i+1:]
         data = []
         for j in keys:
             data.append([])
 
-        print(i, len(lines))
         for j in range(i-1, len(lines)-1):
             # skip empty lines
             if len(lines[j].strip()) == 0:
@@ -1445,7 +1438,6 @@ def read_thorlabs_Power_csv(filename):
         # convert to DataFrame
         #df = pd.DataFrame(data, columns=keys)
         df = {}
-        print(len(data))
         for j in range(len(keys)):
             df[keys[j]] = np.asarray(data[j])
         return df
