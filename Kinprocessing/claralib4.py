@@ -752,7 +752,7 @@ class clarakinetics():
         except Exception as e:
             print("Error loading Thorlabs Powermeter file:", e)
 
-        Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+        #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
         
                 
