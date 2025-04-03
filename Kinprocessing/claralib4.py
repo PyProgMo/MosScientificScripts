@@ -1156,14 +1156,14 @@ class NanocrystalKinetics:
         :param threshold: Intensity threshold to binarize images.
         :return: NumPy array with kinetics data over time.
         """
+        # asdf fix this
         self.dt = dt
         self.method = method
         kinetics = []
         self.image_series = imgs
         for img in self.image_series:
             # Apply the selected method to compute kinetics
-            kinetics.append(self.bgcarray.append(img) /
-                                 np.count_nonzero(~np.isnan(img)))
+            kinetics.append(np.nansum(img) / np.count_nonzero(~np.isnan(img)))
         
         self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
         return self.kinetics_data
