@@ -752,9 +752,8 @@ class clarakinetics():
         except Exception as e:
             print("Error loading Thorlabs Powermeter file:", e)
 
-        #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+        Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
-        
                 
     def buildpowercorrframe(self, notebook, row=0):
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
@@ -764,6 +763,11 @@ class clarakinetics():
         # add a label to the frame
         self.powercorrlabel = tk.Label(self.powercorrframe, text='Select starting time for power correction:')
         self.powercorrlabel.grid(row=0, column=0, sticky='w')
+
+        self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
+
+        Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+
 
 
     
@@ -1156,7 +1160,6 @@ class NanocrystalKinetics:
         :param threshold: Intensity threshold to binarize images.
         :return: NumPy array with kinetics data over time.
         """
-        # asdf fix this
         self.dt = dt
         self.method = method
         kinetics = []
