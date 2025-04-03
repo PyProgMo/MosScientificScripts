@@ -1161,11 +1161,9 @@ class NanocrystalKinetics:
         kinetics = []
         self.image_series = imgs
         for img in self.image_series:
-            # Ensure image is in uint8 format
-            img_uint8 = np.uint8(img) if img.dtype != np.uint8 else img # this works but raises Error ... I do not know exactly yet why
-            # only copilot knows why this is not working (thanks copilot XD)
-            area = np.sum(img_uint8)/np.count_nonzero(~np.isnan(img)) # Compute the total area of detected nanocrystals
-            kinetics.append(area)
+            # Apply the selected method to compute kinetics
+            kinetics.append(self.bgcarray.append(img) /
+                                 np.count_nonzero(~np.isnan(img)))
         
         self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
         return self.kinetics_data
