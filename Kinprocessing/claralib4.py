@@ -767,6 +767,15 @@ class clarakinetics():
         self.Gett0frame.initplot()
         self.Gett0frame.plot()
         #self.Get0rame.plot()
+
+    def getLaserPowerCorrarray(self):
+        try: 
+            self.LaserPowerCArraySig, self.LaserPowerCArraytime = self. self.Gett0frame.get_power_chroped()
+        except:
+            print("Error getting power correction array")
+            self.LaserPowerCArraySig = np.ones(10)
+            self.LaserPowerCArraytime = np.linspace(0, 10, 10)
+
     
     def destroiy_t0_frame(self):
         # try to destroy the t0 frame
