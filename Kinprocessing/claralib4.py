@@ -12,7 +12,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime
 import Thorlabs_Pt_reader as ThorPt
-import plotting_app_tzero as ptzero
+import plotting_app_tzero1 as ptzero
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -734,7 +734,7 @@ class clarakinetics():
 
         # Add a button to load the selected file
         self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
-        self.plaserloadbutton.grid(row=1, column=3, sticky='w')
+        self.plaserloadbutton.grid(row=2, column=3, sticky='w')
 
         self.buildpowercorrframe(self.plaserframe, row=2)
     
@@ -751,18 +751,15 @@ class clarakinetics():
         self.plaserfile = self.plaserfilevar.get()
         try:
             self.Laserpower = ThorPt.obtain_power_data(self.plaserfile)
-
-            plt.plot(self.Laserpower['t'], self.Laserpower['Power'])
-            plt.show()
         except Exception as e:
             print("Error loading Thorlabs Powermeter file:", e)
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
-        self.Gett0rame.tarray = self.Laserpower['t']
-        self.Gett0rame.yarray = self.Laserpower['Power']
-        self.Gett0rame.initplot(800, 200)
+        self.Gett0rame.tarray = self.Laserpower['t'].to_numpy()
+        self.Gett0rame.yarray = self.Laserpower['Power'].to_numpy()
+        self.Gett0rame.initplot()
         self.Gett0rame.plot()
         #self.Get0rame.plot()
                 
@@ -777,7 +774,7 @@ class clarakinetics():
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
-        self.Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+        self.Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 10, 2, self.PLaserTzero)
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
