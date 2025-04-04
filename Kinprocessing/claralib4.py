@@ -887,8 +887,26 @@ class clarakinetics():
         else:
             self.setbgseries()
         self.Nckin.bgcoutarray = self.bgcarray
-        #try:
+
         self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.selkinseries.get()], float(self.dt.get()), self.kinmethod.get())
+
+        self.powercorrarr = np.ones(len(self.procimages[self.procseriesselect.get()]))
+        if self.CorrKinByPower.get():
+            # check if the power correction array is set
+            if self.LaserPowerCArraySig is not None:
+                # get the power correction array
+                self.powercorrarr = np.interp(self.Nckin.plotxaxis*60, self.LaserPowerCArraytime, self.LaserPowerCArraySig)
+                print('Power correction array:', self.powercorrarr)
+            else:
+                print('No power correction array set.')
+            
+            # try to correct the kinetics data by the power correction array
+            try:
+                self.Nckin.kinetics_data = self.Nckin.kinetics_data * self.powercorrarr
+            except Exception as e:
+                print('Error in power correction:', e)
+            
+
         #except Exception as e:
         #    print('Error in Nckin.compute_kinetics:', e)
         self.buildkinfit(self.kinframe, startcol=0, startrow=5)
@@ -1213,6 +1231,8 @@ class NanocrystalKinetics:
             kinetics.append(np.nansum(img) / np.count_nonzero(~np.isnan(img)))
         
         self.kinetics_data = np.subtract(np.array(kinetics), self.bgcoutarray)
+        # dreate x-axis values according to self.dt
+        self.plotxaxis = np.arange(len(self.kinetics_data)) * self.dt / 60
         return self.kinetics_data
 
     def plot_kinetics(self, axisfactor=1):
