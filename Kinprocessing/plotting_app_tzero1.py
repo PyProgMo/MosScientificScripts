@@ -107,6 +107,9 @@ class GetXPlotter:
         # Set labels and title
         self.ax.set_xlabel('Time (s)')
         self.ax.set_ylabel('Power (W)')
+
+        # set left to 0.05 and right to 0.98
+        self.fig.subplots_adjust(left=0.055, right=0.98)
         
         # Add grid and legend
         self.ax.grid(True)
@@ -130,6 +133,15 @@ class GetXPlotter:
 
         # Return the cropped power data starting from the marker position
         return self.ret_array, self.ret_tarray
+
+    def destroy(self):
+        # Destroy the plot frame and toolbar
+        self.plot_frame.destroy()
+        self.toolbar.destroy()
+        self.canvas.get_tk_widget().destroy()
+
+        # Reset the dragging state
+        self.dragging = False
 
 if __name__ == "__main__":
     root = tk.Tk()

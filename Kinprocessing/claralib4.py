@@ -734,7 +734,11 @@ class clarakinetics():
 
         # Add a button to load the selected file
         self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
-        self.plaserloadbutton.grid(row=2, column=3, sticky='w')
+        self.plaserloadbutton.grid(row=1, column=3, sticky='w')
+
+        # Add a button to destroy the t0 frame
+        
+
 
         self.buildpowercorrframe(self.plaserframe, row=2)
     
@@ -775,7 +779,7 @@ class clarakinetics():
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
-        self.Gettf0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 6, 2, self.PLaserTzero)
+        self.Gettf0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 4, 2, self.PLaserTzero)
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
