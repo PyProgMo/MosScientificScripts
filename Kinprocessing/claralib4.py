@@ -175,6 +175,8 @@ class clarakinetics():
         self.powercorrvar = tk.IntVar()
         self.selbgseries = tk.StringVar()
         self.PLaserTzero = tk.DoubleVar()
+        self.CorrKinByPower = tk.BooleanVar()
+        self.CorrKinByPower.set(False)
 
         self.powercorrvar.set(1)
 
@@ -763,7 +765,6 @@ class clarakinetics():
             print("Error loading Thorlabs Powermeter file:", e)
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
-        # testasdf123 continue here
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
         #self.Gett0rame.tarray = self.Laserpower['t'].to_numpy()
         #self.Gett0rame.yarray = self.Laserpower['Power'].to_numpy()
@@ -779,10 +780,7 @@ class clarakinetics():
             self.LaserPowerCArray = pd.DataFrame({'t': self.LaserPowerCArraytime, 'Power': self.LaserPowerCArraySig})
             # connect the arrays to match each time to a power value using concatenate
             self.LaserPowerCArray = pd.concat([self.LaserPowerCArray.assign(t=self.LaserPowerCArraytime), self.LaserPowerCArray], axis=1)
-
-            # test: plot LaserPowerCArray
-            plt.plot(self.LaserPowerCArray['t'], self.LaserPowerCArray['Power'])
-            plt.show()
+            self.CorrKinByPower.set(True)
 
         except Exception as e:
             # create a pandas frame to
@@ -846,6 +844,10 @@ class clarakinetics():
         self.kinmethod.set(self.kinmethods[0])
         self.kinmethodselect = ttk.Combobox(self.kinframe, textvariable=self.kinmethod, values=self.kinmethods)
         self.kinmethodselect.grid(row=2, column=1)
+
+        # add a checkbox to set CorrKinByPower state
+        self.CorrKinByPbox = tk.Checkbutton(self.kinframe, text='Correct Kinetics by Power', variable=self.CorrKinByPower)
+        self.CorrKinByPbox.grid(row=3, column=0, columnspan=2)
 
         # add a parameter for kinetics processing
         self.kinparamlabel = tk.Label(self.kinframe, text='Parameter:')
