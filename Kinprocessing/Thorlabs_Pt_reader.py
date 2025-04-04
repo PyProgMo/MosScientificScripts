@@ -101,7 +101,7 @@ def testrun():
     print(a.keys())
     #print(a['Time of day (hh:mm:ss) '])
 
-    b = obtain_power_data()
+    b = obtain_power_data('Sample.csv')
     # plot b['Power'] vs b['t'] time in seconds
     print(b['Power'])
     print(b['t'])

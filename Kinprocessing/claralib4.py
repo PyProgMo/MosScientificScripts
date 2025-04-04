@@ -754,6 +754,8 @@ class clarakinetics():
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
+        self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
+        self.Get0rame.plot()
                 
     def buildpowercorrframe(self, notebook, row=0):
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
@@ -766,7 +768,7 @@ class clarakinetics():
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
-        Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
+        self.Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
 
 
 
