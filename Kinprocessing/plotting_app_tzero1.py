@@ -31,7 +31,7 @@ class GetXPlotter:
         
         # Create container frame for plot and toolbar
         self.plot_frame = tk.Frame(self.master)
-        self.plot_frame.grid(row=0, column=0, columnspan=2, sticky='nsew')
+        self.plot_frame.grid(row=0, column=0, columnspan=2, sticky='nsew', rowspan=6)
         
         # Create matplotlib figure and canvas
         self.fig = Figure(figsize=(self.framex, self.framey), dpi=100)

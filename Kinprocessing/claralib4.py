@@ -717,7 +717,7 @@ class clarakinetics():
     
     def buildPlaserframe(self, notebook, row=0):
         self.plaserframe = tk.Frame(notebook, border=2, relief='ridge')
-        self.plaserframe.grid(row=row, column=0, sticky='nsew')
+        self.plaserframe.grid(row=row, column=0, sticky='nsew', columnspan=6)
         
         # Add a label for the Thorlabs Powermeter output file
         self.plaserlabel = tk.Label(self.plaserframe, text="Thorlabs Powermeter output .csv file:")
@@ -726,25 +726,25 @@ class clarakinetics():
         # Add an entry to display the selected file path
         self.plaserfilevar = tk.StringVar()
         self.plaserentry = tk.Entry(self.plaserframe, textvariable=self.plaserfilevar, width=100)
-        self.plaserentry.grid(row=1, column=0, sticky='w')
+        self.plaserentry.grid(row=1, column=0, sticky='w', columnspan=6)
 
         # Add a button to browse for the file
         self.plaserbrowsebutton = tk.Button(self.plaserframe, text="Browse", command=self.browse_plaser_file)
-        self.plaserbrowsebutton.grid(row=1, column=2, sticky='w')
+        self.plaserbrowsebutton.grid(row=2, column=2, sticky='w')
 
         # Add a button to load the selected file
         self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
-        self.plaserloadbutton.grid(row=1, column=3, sticky='w')
+        self.plaserloadbutton.grid(row=2, column=3, sticky='w')
 
         # Add a button to get the power correction array
         self.plasergetbutton = tk.Button(self.plaserframe, text="Get Power Correction", command=self.getLaserPowerCorrarray)
-        self.plasergetbutton.grid(row=1, column=4, sticky='w')
+        self.plasergetbutton.grid(row=2, column=4, sticky='w')
 
         # Add a button to destroy the t0 frame
         self.plaserdestroybutton = tk.Button(self.plaserframe, text="Destroy Frame", command=self.destroiy_t0_frame)
-        self.plaserdestroybutton.grid(row=1, column=5, sticky='w')
+        self.plaserdestroybutton.grid(row=2, column=5, sticky='w')
 
-        self.buildpowercorrframe(self.plaserframe, row=2)
+        self.buildpowercorrframe(self.plaserframe, row=3, rowspan=6)
     
     def browse_plaser_file(self):
         # Open a file dialog to select the file
@@ -794,14 +794,16 @@ class clarakinetics():
         except AttributeError:
             print("No t0 frame to destroy")
                 
-    def buildpowercorrframe(self, notebook, row=0):
+    def buildpowercorrframe(self, notebook, row=0, rowspan= 6):
+        self.row = row
+        self.rowspan = rowspan
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
         self.powercorrframe = tk.Frame(notebook, border=2, relief='ridge')
         self.powercorrframe.grid(row=row, column=0, sticky='nsew')
 
         # add a label to the frame
         self.powercorrlabel = tk.Label(self.powercorrframe, text='Select starting time for power correction:')
-        self.powercorrlabel.grid(row=0, column=0, sticky='w')
+        self.powercorrlabel.grid(row=0, column=0, sticky='w', columnspan=6)
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
