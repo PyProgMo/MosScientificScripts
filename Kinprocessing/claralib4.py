@@ -757,10 +757,11 @@ class clarakinetics():
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
-        self.Gett0rame.tarray = self.Laserpower['t'].to_numpy()
-        self.Gett0rame.yarray = self.Laserpower['Power'].to_numpy()
-        self.Gett0rame.initplot()
-        self.Gett0rame.plot()
+        #self.Gett0rame.tarray = self.Laserpower['t'].to_numpy()
+        #self.Gett0rame.yarray = self.Laserpower['Power'].to_numpy()
+        self.Gett0frame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'].to_numpy(), self.Laserpower['Power'].to_numpy(), 10, 2, self.PLaserTzero)
+        self.Gett0frame.initplot()
+        self.Gett0frame.plot()
         #self.Get0rame.plot()
                 
     def buildpowercorrframe(self, notebook, row=0):
@@ -774,7 +775,7 @@ class clarakinetics():
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
-        self.Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 10, 2, self.PLaserTzero)
+        self.Gettf0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 6, 2, self.PLaserTzero)
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
