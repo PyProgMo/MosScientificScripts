@@ -1,0 +1,15 @@
+x_min=490.0
+x_max=1000.1
+y_min=-0.05
+y_max=1.1
+x_tick=50.0
+y_tick=0.2
+label_fontsize=24
+tick_fontsize=22
+legend_fontsize=22
+x_label=Wavelength (nm)
+y_label=norm. Intensity
+font=Arial
+show_grid=False
+normalize_data=False
+normalize_max=True
