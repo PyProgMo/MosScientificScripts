@@ -59,10 +59,7 @@ def getfiles():
     return select_files(root, close=True)
 
 
-# second notebook
-# load the files here - adjust d and f to the desired directory and file
-#d = getdir() # open dir # run this cell to open a dir and save it on d
-#print(d)
+# default directory for the data files
 d = "C:/Users/volib/Desktop/Evaluation/data/2024/Perovskite/Caroline_Kloth/clarakin_t1/tm1/image/N1Uncaped_40step_15min/kinascfiles".replace("/", "\\")
 print('d = ', d)
 #f = getfiles() # open files # run this cell to open files and save them to the array f
