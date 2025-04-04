@@ -751,14 +751,19 @@ class clarakinetics():
         self.plaserfile = self.plaserfilevar.get()
         try:
             self.Laserpower = ThorPt.obtain_power_data(self.plaserfile)
+
+            plt.plot(self.Laserpower['t'], self.Laserpower['Power'])
+            plt.show()
         except Exception as e:
             print("Error loading Thorlabs Powermeter file:", e)
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
-        self.Get0rame.tarray = self.Laserpower['t']
-        self.Get0rame.yarray = self.Laserpower['Power']
+        self.Gett0rame.tarray = self.Laserpower['t']
+        self.Gett0rame.yarray = self.Laserpower['Power']
+        self.Gett0rame.initplot()
+        self.Gett0rame.plot()
         #self.Get0rame.plot()
                 
     def buildpowercorrframe(self, notebook, row=0):

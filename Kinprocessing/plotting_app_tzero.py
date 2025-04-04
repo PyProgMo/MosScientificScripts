@@ -8,20 +8,21 @@ class GetXPlotter:
         self.tarray = tarray
         self.array = array
         self.marker_position = 0
+        self.inpvar = var
 
-        self.canvas = Canvas(master, width=800, height=400)
+        self.canvas = Canvas(master, width=800, height=200)
         self.canvas.grid(row=0, column=0, columnspan=2)
         self.t0_entry = tk.Entry(master)
         self.t0_entry.grid(row=1, column=0, sticky="nsew")
+
         #self.t0_entry.insert(0, f"{self.marker_position:.2f}")  # Initialize with the marker position
 
     def initplot(self):
-        #self.plot()
         self.marker = self.canvas.create_oval(0, 0, 10, 10, fill='red', tags='marker')
         self.canvas.bind('<B1-Motion>', self.move_marker)
 
-        if var is not None:
-            self.var = var
+        if self.inpvar is not None:
+            self.var = self.inpvar
             self.var.set(self.marker_position)
         else:
             self.var = tk.DoubleVar()
@@ -34,11 +35,9 @@ class GetXPlotter:
         min_a = min(self.array)
         max_a = max(self.array)
 
+        print(f"min_t: {min_t}, max_t: {max_t}, min_a: {min_a}, max_a: {max_a}")
+
         for i in range(len(self.tarray) - 1):
-            x1 = (self.tarray[i] - min_t) / (max_t - min_t) * 800
-            y1 = 400 - (self.array[i] - min_a) / (max_a - min_a) * 400
-            x2 = (self.tarray[i + 1] - min_t) / (max_t - min_t) * 800
-            y2 = 400 - (self.array[i + 1] - min_a) / (max_a - min_a) * 400
             x1 = (self.tarray[i] - min_t) / (max_t - min_t) * 800
             y1 = 400 - (self.array[i] - min_a) / (max_a - min_a) * 400
             x2 = (self.tarray[i + 1] - min_t) / (max_t - min_t) * 800
