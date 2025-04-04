@@ -17,9 +17,13 @@ class GetXPlotter:
 
         #self.t0_entry.insert(0, f"{self.marker_position:.2f}")  # Initialize with the marker position
 
-    def initplot(self):
+    def initplot(self, plotsizx=800, plotsizy=200):
+
         self.marker = self.canvas.create_oval(0, 0, 10, 10, fill='red', tags='marker')
         self.canvas.bind('<B1-Motion>', self.move_marker)
+
+        self.plotsizex = plotsizx
+        self.plotsizy = plotsizy
 
         if self.inpvar is not None:
             self.var = self.inpvar
@@ -38,11 +42,10 @@ class GetXPlotter:
         print(f"min_t: {min_t}, max_t: {max_t}, min_a: {min_a}, max_a: {max_a}")
 
         for i in range(len(self.tarray) - 1):
-            x1 = (self.tarray[i] - min_t) / (max_t - min_t) * 800
-            y1 = 400 - (self.array[i] - min_a) / (max_a - min_a) * 400
-            x2 = (self.tarray[i + 1] - min_t) / (max_t - min_t) * 800
-            y2 = 400 - (self.array[i + 1] - min_a) / (max_a - min_a) * 400
-            self.canvas.create_line(x1, y1, x2, y2)
+            x = (self.tarray[i] - min_t) / (max_t - min_t) * self.plotsizex
+            y = self.plotsizy / 2 if max_a == min_a else self.plotsizy - (self.array[i] - min_a) / (max_a - min_a) * self.plotsizy
+            self.canvas.create_oval(x-1, y-1, x+1, y+1, fill='black')
+            #self.canvas.create_line(x1, y1, x2, y2)
 
     def move_marker(self, event):
         x = event.x
