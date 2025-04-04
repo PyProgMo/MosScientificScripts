@@ -767,6 +767,13 @@ class clarakinetics():
         self.Gett0frame.initplot()
         self.Gett0frame.plot()
         #self.Get0rame.plot()
+    
+    def destroiy_t0_frame(self):
+        # try to destroy the t0 frame
+        try:
+            self.Gett0frame.destroy()
+        except AttributeError:
+            print("No t0 frame to destroy")
                 
     def buildpowercorrframe(self, notebook, row=0):
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
@@ -779,7 +786,7 @@ class clarakinetics():
 
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
-        self.Gettf0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 4, 2, self.PLaserTzero)
+        self.Gettf0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], 6, 2, self.PLaserTzero)
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')
