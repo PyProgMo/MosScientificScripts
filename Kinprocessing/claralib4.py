@@ -774,15 +774,19 @@ class clarakinetics():
 
     def getLaserPowerCorrarray(self):
         try: 
-            self.LaserPowerCArraySig, self.LaserPowerCArraytime = self. self.Gett0frame.get_power_chroped()
+            self.LaserPowerCArraySig, self.LaserPowerCArraytime = self.Gett0frame.get_power_chroped()
             # create a pandas dataset to store self.LaserPowerCArraySig and self.LaserPowerCArraytime
             self.LaserPowerCArray = pd.DataFrame({'t': self.LaserPowerCArraytime, 'Power': self.LaserPowerCArraySig})
             # connect the arrays to match each time to a power value using concatenate
             self.LaserPowerCArray = pd.concat([self.LaserPowerCArray.assign(t=self.LaserPowerCArraytime), self.LaserPowerCArray], axis=1)
 
-        except:
+            # test: plot LaserPowerCArray
+            plt.plot(self.LaserPowerCArray['t'], self.LaserPowerCArray['Power'])
+            plt.show()
+
+        except Exception as e:
             # create a pandas frame to
-            print("Error getting power correction array")
+            print("Error getting power correction array. Error:", e)
             self.LaserPowerCArraySig = np.ones(10)
             self.LaserPowerCArraytime = np.linspace(0, 10, 10)
 
@@ -799,7 +803,7 @@ class clarakinetics():
         self.rowspan = rowspan
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
         self.powercorrframe = tk.Frame(notebook, border=2, relief='ridge')
-        self.powercorrframe.grid(row=row, column=0, sticky='nsew')
+        self.powercorrframe.grid(row=row, column=0, sticky='nsew', columnspan=6)
 
         # add a label to the frame
         self.powercorrlabel = tk.Label(self.powercorrframe, text='Select starting time for power correction:')

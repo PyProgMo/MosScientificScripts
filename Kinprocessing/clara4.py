@@ -75,7 +75,7 @@ print('f = ', f)
 
 # create tkinter window
 root = tk.Tk()
-root.geometry('{}x{}'.format(900, 800))
+root.geometry('{}x{}'.format(1200, 800))
 
 class ClaraApp:
     def __init__(self, root):
