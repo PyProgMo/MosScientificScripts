@@ -736,9 +736,13 @@ class clarakinetics():
         self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
         self.plaserloadbutton.grid(row=1, column=3, sticky='w')
 
-        # Add a button to destroy the t0 frame
-        
+        # Add a button to get the power correction array
+        self.plasergetbutton = tk.Button(self.plaserframe, text="Get Power Correction", command=self.getLaserPowerCorrarray)
+        self.plasergetbutton.grid(row=1, column=4, sticky='w')
 
+        # Add a button to destroy the t0 frame
+        self.plaserdestroybutton = tk.Button(self.plaserframe, text="Destroy Frame", command=self.destroiy_t0_frame)
+        self.plaserdestroybutton.grid(row=1, column=5, sticky='w')
 
         self.buildpowercorrframe(self.plaserframe, row=2)
     
@@ -771,7 +775,13 @@ class clarakinetics():
     def getLaserPowerCorrarray(self):
         try: 
             self.LaserPowerCArraySig, self.LaserPowerCArraytime = self. self.Gett0frame.get_power_chroped()
+            # create a pandas dataset to store self.LaserPowerCArraySig and self.LaserPowerCArraytime
+            self.LaserPowerCArray = pd.DataFrame({'t': self.LaserPowerCArraytime, 'Power': self.LaserPowerCArraySig})
+            # connect the arrays to match each time to a power value using concatenate
+            self.LaserPowerCArray = pd.concat([self.LaserPowerCArray.assign(t=self.LaserPowerCArraytime), self.LaserPowerCArray], axis=1)
+
         except:
+            # create a pandas frame to
             print("Error getting power correction array")
             self.LaserPowerCArraySig = np.ones(10)
             self.LaserPowerCArraytime = np.linspace(0, 10, 10)

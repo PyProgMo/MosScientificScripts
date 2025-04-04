@@ -129,7 +129,7 @@ class GetXPlotter:
         
         # chrop the power data and time array from the marker position to the end and normalize it
         self.ret_array = np.divide(self.array[self.marker_position:], np.amax(self.array[self.marker_position:]))
-        self.ret_tarray = np.divide(self.tarray[self.marker_position:], np.amax(self.tarray[self.marker_position:]))
+        self.ret_tarray = np.asarray(self.tarray[self.marker_position:])-self.marker_position
 
         # Return the cropped power data starting from the marker position
         return self.ret_array, self.ret_tarray
