@@ -762,7 +762,7 @@ class clarakinetics():
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
         self.Gett0rame.tarray = self.Laserpower['t']
         self.Gett0rame.yarray = self.Laserpower['Power']
-        self.Gett0rame.initplot()
+        self.Gett0rame.initplot(800, 200)
         self.Gett0rame.plot()
         #self.Get0rame.plot()
                 
