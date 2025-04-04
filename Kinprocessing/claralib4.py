@@ -735,6 +735,8 @@ class clarakinetics():
         # Add a button to load the selected file
         self.plaserloadbutton = tk.Button(self.plaserframe, text="Load PLaser file", command=self.load_plaser_file)
         self.plaserloadbutton.grid(row=1, column=3, sticky='w')
+
+        self.buildpowercorrframe(self.plaserframe, row=2)
     
     def browse_plaser_file(self):
         # Open a file dialog to select the file
@@ -754,8 +756,10 @@ class clarakinetics():
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         # testasdf123 continue here
-        self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
-        self.Get0rame.plot()
+        #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
+        self.Get0rame.tarray = self.Laserpower['t']
+        self.Get0rame.yarray = self.Laserpower['Power']
+        #self.Get0rame.plot()
                 
     def buildpowercorrframe(self, notebook, row=0):
         # display self.Laserpower['Power'] vs self.Laserpower['t'] in a small plot
@@ -769,9 +773,6 @@ class clarakinetics():
         self.Laserpower = {'t': [0, 1], 'Power': [1, 1]}
 
         self.Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
-
-
-
     
     def buildkinframe(self, notebook, row=0):
         self.kinframe = tk.Frame(notebook, border=2, relief='ridge')

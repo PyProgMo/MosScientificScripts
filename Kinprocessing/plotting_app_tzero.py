@@ -10,12 +10,13 @@ class GetXPlotter:
         self.marker_position = 0
 
         self.canvas = Canvas(master, width=800, height=400)
-        self.canvas.pack(side=tk.LEFT)
-        
+        self.canvas.grid(row=0, column=0, columnspan=2)
         self.t0_entry = tk.Entry(master)
-        self.t0_entry.pack(side=tk.LEFT)
+        self.t0_entry.grid(row=1, column=0, sticky="nsew")
+        #self.t0_entry.insert(0, f"{self.marker_position:.2f}")  # Initialize with the marker position
 
-        self.plot()
+    def initplot(self):
+        #self.plot()
         self.marker = self.canvas.create_oval(0, 0, 10, 10, fill='red', tags='marker')
         self.canvas.bind('<B1-Motion>', self.move_marker)
 
