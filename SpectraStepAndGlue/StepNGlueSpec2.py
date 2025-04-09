@@ -198,11 +198,7 @@ class SpectraGluingApp:
                 center = (overlap_end + overlap_start) / 2
                 width = (overlap_end - overlap_start) / 10  # Adjust this value to control transition sharpness
                 fermi_weights = 1 / (1 + np.exp((overlap_points - center) / width))
-                interp_counts = S1_interp * fermi_weights + S2_interp * (1 - fermi_weights)
-
-                # for testing purposes only: plot the fermi_weights
-                plt.plot(overlap_points, fermi_weights, label='Fermi Weights')
-                plt.show()                
+                interp_counts = S1_interp * fermi_weights + S2_interp * (1 - fermi_weights)             
                 
                 # Create new dataframe with interpolated region
                 S1 = S1[S1['WL'] < overlap_start]
