@@ -8,7 +8,7 @@ from tkinter import ttk
 class SpectraGluingApp:
     def __init__(self, master):
         self.master = master
-        self.gluemodes = ['remove overlap', 'iterpolate overlap']
+        self.gluemodes = ['remove overlap', 'iterpolate overlap', 'Fermi glue']
         master.title("Spectra Gluing Application")
 
         self.label = tk.Label(master, text="Open two spectra files to glue them together.")
@@ -24,7 +24,7 @@ class SpectraGluingApp:
         self.gluemode_label = tk.Label(master, text="Select Glue Mode:")
         self.gluemode_label.pack()
         self.gluemode_var = tk.StringVar(master)
-        self.gluemode_var.set(self.gluemodes[0])
+        self.gluemode_var.set(self.gluemodes[-1])
         self.gluemode_menu = ttk.Combobox(master, textvariable=self.gluemode_var, values=self.gluemodes)
         self.gluemode_menu.pack()    
 
@@ -85,6 +85,11 @@ class SpectraGluingApp:
             self.dfs1, self.dfs2 = self.removeoverlap(self.dfs1, self.dfs2)
         elif self.gluemode_var.get() == 'iterpolate overlap':
             self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
+        elif self.gluemode_var.get() == 'Fermi glue':
+            self.dfs1, self.dfs2 = self.fermiglue(self.dfs1, self.dfs2)
+        else:
+            print("Invalid glue mode selected.")
+            return
 
         # plot dfs1 and dfs2
         plt.plot(self.dfs1['WL'], self.dfs1['counts'], label='Spectrum 1')
@@ -155,6 +160,102 @@ class SpectraGluingApp:
                 S2 = S2[S2['counts'] <= S2[S2['WL'] < overlapcenter]['counts'].max()]
                 S1 = S1[S1['WL'] > overlapcenter]     
                 S2 = S2[S2['counts'] <= S2[S2['WL'] > overlapcenter]['counts'].max()]
+        return S1, S2
+    
+    def fermiglue(self, S1, S2):
+        # Remove overlapping wavelengths of the pd.dataframes S1 and S2
+        # S1 is the first spectrum, S2 is the second spectrum
+        # Find overlapping wavelengths
+
+        # Get start and end of overlap
+        wl1s = S1['WL'].iloc[0]
+        wl1e = S1['WL'].iloc[-1]
+        wl2s = S2['WL'].iloc[0]
+        wl2e = S2['WL'].iloc[-1]
+        print('wl1s:', wl1s, 'wl1e:', wl1e, 'wl2s:', wl2s, 'wl2e:', wl2e)
+
+        # Determine and remove overlapping wavelengths
+        # 1st case: S1 is before S2
+        if wl1s < wl2e:
+            if wl1e > wl2s:
+                print('case 1')
+                # Find overlap region
+                overlap_start = max(wl1s, wl2s)
+                overlap_end = min(wl1e, wl2e)
+                
+                # Create interpolation points in overlap region
+                overlap_points = np.linspace(overlap_start, overlap_end, 100)
+                
+                # Interpolate both spectra in overlap region
+                S1_interp = np.interp(overlap_points, 
+                                    S1[S1['WL'].between(overlap_start, overlap_end)]['WL'],
+                                    S1[S1['WL'].between(overlap_start, overlap_end)]['counts'])
+                S2_interp = np.interp(overlap_points, 
+                                    S2[S2['WL'].between(overlap_start, overlap_end)]['WL'],
+                                    S2[S2['WL'].between(overlap_start, overlap_end)]['counts'])
+
+                # Create Fermi function transition
+                center = (overlap_end + overlap_start) / 2
+                width = (overlap_end - overlap_start) / 10  # Adjust this value to control transition sharpness
+                fermi_weights = 1 / (1 + np.exp((overlap_points - center) / width))
+                interp_counts = S1_interp * fermi_weights + S2_interp * (1 - fermi_weights)
+
+                # for testing purposes only: plot the fermi_weights
+                plt.plot(overlap_points, fermi_weights, label='Fermi Weights')
+                plt.show()                
+                
+                # Create new dataframe with interpolated region
+                S1 = S1[S1['WL'] < overlap_start]
+                S2 = S2[S2['WL'] > overlap_end]
+
+                # make sure S1 and S2 are sorted by WL
+                S1 = S1.sort_values('WL')
+                S2 = S2.sort_values('WL')
+
+                # make sure S1 ['WL'] and S2 ['WL'] are of type float
+                S1['WL'] = S1['WL'].astype(float)
+                S2['WL'] = S2['WL'].astype(float)
+                S1['counts'] = S1['counts'].astype(float)
+                S2['counts'] = S2['counts'].astype(float)
+
+                print('S1', S1)
+                print('S2', S2)
+                
+                # Add interpolated region to S1
+                overlap_df = pd.DataFrame({'WL': overlap_points, 'counts': interp_counts})
+                S1 = pd.concat([S1, overlap_df]).sort_values('WL')
+        # 2nd case: S1 is after S2
+        elif wl2s < wl1e:
+            if wl2e > wl1s:
+                print('case 2')
+                # Find overlap region
+                overlap_start = max(wl2s, wl1s)
+                overlap_end = min(wl2e, wl1e)
+                
+                # Create interpolation points in overlap region
+                overlap_points = np.linspace(overlap_start, overlap_end, 100)
+                
+                # Interpolate both spectra in overlap region
+                S2_interp = np.interp(overlap_points,
+                                    S2[S2['WL'].between(overlap_start, overlap_end)]['WL'],
+                                    S2[S2['WL'].between(overlap_start, overlap_end)]['counts'])
+                S1_interp = np.interp(overlap_points,
+                                    S1[S1['WL'].between(overlap_start, overlap_end)]['WL'],
+                                    S1[S1['WL'].between(overlap_start, overlap_end)]['counts'])
+
+                # Create Fermi function transition
+                center = (overlap_end + overlap_start) / 2
+                width = (overlap_end - overlap_start) / 10  # Adjust width parameter as needed
+                fermi_weights = 1 / (1 + np.exp((overlap_points - center) / width))
+                interp_counts = S2_interp * fermi_weights + S1_interp * (1 - fermi_weights)
+                
+                # Create new dataframe with interpolated region
+                S2 = S2[S2['WL'] < overlap_start]
+                S1 = S1[S1['WL'] > overlap_end]
+                
+                # Add interpolated region to S2
+                overlap_df = pd.DataFrame({'WL': overlap_points, 'counts': interp_counts})
+                S2 = pd.concat([S2, overlap_df]).sort_values('WL')
         return S1, S2
 
     def interpoverlap(self, S1, S2):
