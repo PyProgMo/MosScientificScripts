@@ -9,10 +9,13 @@ from matplotlib.path import Path
 from matplotlib.widgets import Button
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
+from tkinter import filedialog as tkfd
 from datetime import datetime
 import Thorlabs_Pt_reader as ThorPt
 import plotting_app_tzero1 as ptzero
+import matplotlib.ticker as ticker
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 class imageprocessor():
     def __init__(self, Notebook, loadfunct, metadata, dx, dy, imagefile=''):
@@ -45,7 +48,7 @@ class imageprocessor():
         self.load_button.grid(row=0, column=3)        
 
     def browsefile(self):
-        self.imagefile = tk.filedialog.askopenfilename()
+        self.imagefile = tkfd.askopenfilename()
         self.loadfnvar.set(self.imagefile)
 
     def loadfile(self):
@@ -65,14 +68,29 @@ class imageprocessor():
         # create a new frame for the image processing
         self.image_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
         self.image_frame.grid(row=0, column=0, sticky='nsew')
-        self.plotimage = tk.Button(self.image_frame, text='Plot Image', command=self.plotimage)
-        self.plotimage.grid(row=0, column=0)
+        self.plotimageB = tk.Button(self.image_frame, text='Plot Image', command= lambda: self.plotimage())
+        self.plotimageB.grid(row=0, column=0)
         self.fitg2Dbutton = tk.Button(self.image_frame, text='Fit 2D Gaussian', command=lambda: self.fit2dgaussian())
         self.fitg2Dbutton.grid(row=0, column=1)
         self.plotfitbutton = tk.Button(self.image_frame, text='Plot Fit', command=lambda: plot2dfit(self.imagedata, self.g2dpopt, self.dx, self.dy))
         self.plotfitbutton.grid(row=0, column=2)
         self.area = tk.Button(self.image_frame, text='Area', command=lambda: area2dgaussian(self.imagefile, self.g2dpopt, np.exp(-2), self.dx, self.dy))
         self.area.grid(row=0, column=3)
+    
+    def plotimage(self):
+        # create a new frame for the image processing
+        self.fig, self.ax = plt.subplots(figsize=(5, 5))
+        self.ax.imshow(self.imagedata, cmap='gray')
+        self.ax.set_title('Image')
+        self.ax.set_xlabel('X \u03bcm')
+        self.ax.set_ylabel('Y \u03bcm') 
+        self.ax.set_aspect('equal')
+        # Multiply axis labels by the scaling factor (self.dx)
+        xticks = self.ax.get_xticks()
+        yticks = self.ax.get_yticks()
+        self.ax.set_xticklabels([f"{tick * self.dx:.2f}" for tick in xticks])
+        self.ax.set_yticklabels([f"{tick * self.dy:.2f}" for tick in yticks])
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.image_frame)
     
 # loadclaraimage function from deflib1
 def loadclaraimage(file, metadata=False):
@@ -105,10 +123,10 @@ def loadclaraimage(file, metadata=False):
                 skip += 1
             else:
                 break
-
+    
+    mdr = {}
     with open(file) as f:
         if metadata == True:
-            mdr = {}
             for i in range(skip):
                 line = f.readline()
                 match = re.match(r"^(.*?):\s+(.+)$", line.strip()) # Compiloted coded this and I thinkt it's beautiful
@@ -142,13 +160,14 @@ def loadclaraimage(file, metadata=False):
 def getcimages(dir):
     # try to load the files with loadlaraimage
     files = os.listdir(dir)
+    retl = []
     try:
         files = [f for f in files if f.endswith('.asc')]
         if len(files) > 0:
-            return files
+            retl = [f for f in files if '.roiims' not in f]  # exclude roiims files
     except:
         print('No files found')
-        return []
+    return retl
 
 class clarakinetics():
     def __init__(self, Notebook, dir, dx, dy):
@@ -162,7 +181,7 @@ class clarakinetics():
         self.plotimageN = 0
         self.colormap = tk.StringVar()
         self.dt = tk.StringVar()
-        self.kinparam = tk.StringVar()
+        self.kinparamVar = tk.StringVar()
         self.selkinseries = tk.StringVar()
         self.kinmethod = tk.StringVar()
         self.proccolormap = tk.StringVar()
@@ -170,13 +189,16 @@ class clarakinetics():
         self.imageN = tk.StringVar()
         self.procimageN = tk.StringVar()
         self.procseries = tk.StringVar()
-        self.procseriesselect = tk.StringVar()
         self.loadfnvar = tk.StringVar()
         self.powercorrvar = tk.IntVar()
         self.selbgseries = tk.StringVar()
         self.PLaserTzero = tk.DoubleVar()
+        self.magnification = tk.StringVar()
         self.CorrKinByPower = tk.BooleanVar()
+        self.claramags = {'20x': 0.0568, '50x': 0.0227, '100x': 0.0113} # magnification in mum/pixel for Clara images
+        self.immag = self.claramags[list(self.claramags.keys())[0]]  # default magnification
         self.CorrKinByPower.set(False)
+        self.cfnames = []
 
         self.powercorrvar.set(1)
 
@@ -209,6 +231,14 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.kinetics_frame, text='Load Clara Images', command=self.loadfiles)
         self.loadbutton.grid(row=0, column=3, sticky='w')
 
+        # add a combobox to select the magnification
+        self.magnificationlabel = tk.Label(self.kinetics_frame, text='Magnification:')
+        self.magnificationlabel.grid(row=0, column=4, sticky='w')
+        self.magnifications = {'20x': 0.0568, '50x': 0.0227, '100x': 0.0113}
+        self.magnification.set('20x')  # default value
+        self.magnificationselect = ttk.Combobox(self.kinetics_frame, textvariable=self.magnification, values=list(self.magnifications.keys()), width=10)
+        self.magnificationselect.grid(row=0, column=5, sticky='w')
+
         # build a frame to load a roiims file
         self.roiims_frame = tk.Frame(self.Notebook, border=1, relief='ridge')
         self.roiims_frame.grid(row=1, column=0, sticky='nsew')
@@ -226,13 +256,15 @@ class clarakinetics():
         self.loadbutton = tk.Button(self.roiims_frame, text='Load .roiims file', command=self.loadroiims)
         self.loadbutton.grid(row=0, column=3)
 
+
         # construct implotframe in a new frame on the notebook
         self.implframe = tk.Frame(self.kinetics_frame)
         self.implframe.grid(row=1, column=0, columnspan=4, sticky='nsew')
+
     
     def browseroiims(self):
         # open a file dialog to select a file
-        self.roiimsfile = tk.filedialog.askopenfilename()
+        self.roiimsfile = tkfd.askopenfilename()
         self.loadfnvar.set(self.roiimsfile)
     
     #        self.procimages[loadedname] = comploadimseries(filename)
@@ -316,7 +348,7 @@ class clarakinetics():
         self.plotdatafitbutton.grid(row=startrow+1, column=startcol+3)
 
     def compute_rate_constant(self, order, y, dt, param): # function to calculate the rate constant
-        self.kinfitparams[order] = calculate_rate_constant(order, y, dt, param)
+        self.kinfitparams[order] = calculate_rate_constant(order, y, dt, param) # type: ignore
         self.rateconstantvar.set("")  # Clear the previous value
         self.ampconstvar.set("")
         self.Cconstvar.set("")
@@ -355,6 +387,9 @@ class clarakinetics():
         elif norder == '3rd':
             func = lambda x: k3model(x, *self.kinfitparams['3rd order'])
             print(f"Third-order fit parameters: k={self.kinfitparams['3rd order'][0]}, A0={self.kinfitparams['3rd order'][1]}, C={self.kinfitparams['3rd order'][2]}")
+        else: 
+            print('No valid order selected, auto-selecting 0 order')
+            func = lambda x: k0model(x, *self.kinfitparams['0 order'])
         # plot the fit
         ax.plot(x/60, func(x)/axisfactor, label='Fit')
         # add labels
@@ -433,11 +468,26 @@ class clarakinetics():
             self.cbar = self.fig.colorbar(self.cim, ax=self.ax)
 
         # set cmat to gryscale
-        self.ax.set_title(self.cfnames[self.plotimageN])
+        self.ax.set_title(self.cfnames[int(self.plotimageN)])
         self.ax.set_xlabel('X')
         self.ax.set_ylabel('Y')
         self.ax.set_aspect('equal')
         self.ax.grid(False)
+        # Multiply axis labels by the scaling factor (self.immag)
+        xticks = self.ax.get_xticks()
+        yticks = self.ax.get_yticks()
+        #self.ax.set_xticklabels([f"{tick * self.immag:.2f}" for tick in xticks])
+        #self.ax.set_yticklabels([f"{tick * self.immag:.2f}" for tick in yticks])
+
+        # Set the tick labels to the magnification
+        self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+        self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+        # Use MaxNLocator to limit the number of ticks and avoid overlap
+        self.ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+        self.ax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+
+        # Automatically adjust subplot params for better spacing
+        self.fig.tight_layout()
 
         # add close event
         self.fig.canvas.mpl_connect('close_event', lambda event: self.close())
@@ -494,6 +544,9 @@ class clarakinetics():
     def loadfiles(self):
         self.cimages = []
         self.cfnames = []
+        if self.magnification.get() in self.magnifications:
+            self.immag = self.magnifications[self.magnification.get()]  # get the magnification from the combobox
+            print(f'Set magnification to {self.immag} mum/pixel')
         self.cfnames = getcimages(self.dir)
         cimagemin = 0
         cimagemax = 1
@@ -516,7 +569,7 @@ class clarakinetics():
         self.buildkinframe(self.Notebook, row=6) # build the kinetics processing frame
 
     def browsefiles(self):
-        self.dir = tk.filedialog.askdirectory()
+        self.dir = tkfd.askdirectory()
         self.sdir.set(self.dir)
     
     def close(self):
@@ -537,7 +590,7 @@ class clarakinetics():
         # add a combobox to select the roi
         self.roiselgui = ttk.Combobox(self.roiframe, values=list(self.roilist.keys()))
         self.roiselgui.grid(row=0, column=1)
-        self.roihand = Roihandler(self.roilist, self.cimages[0].imagedata)
+        self.roihand = Roihandler(self.roilist, self.cimages[0].imagedata, self.immag)
 
         # add start button to start the roi selection
         self.startbutton = tk.Button(self.roiframe, text='Start ROI editing', command=lambda: self.roihand.construct(self.cimages[0].imagedata, self.roiselgui))
@@ -592,7 +645,7 @@ class clarakinetics():
 
         # add a combobox to select the Kinetic Series
         self.procseries.set('')
-        self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[list(self.procimages.keys())])
+        self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=list(self.procimages.keys()))
         self.procseriesselect.grid(row=0, column=1)
         self.procseriesselect.bind('<<ComboboxSelected>>', lambda event: self.plotprocimage())
 
@@ -643,20 +696,20 @@ class clarakinetics():
     
     def exportprocimage(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.npy')
+        filename = tkfd.asksaveasfilename(defaultextension='.npy')
         # export the image
         np.save(filename, self.procimages[self.procseriesselect.get()][self.plotprocimageN])
 
     def savekinseries(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.roiims')
+        filename = tkfd.asksaveasfilename(defaultextension='.roiims')
         # save the series to the file
         #np.save(filename, self.procimages[self.procseriesselect.get()])
         compsaveimseries(self.procimages[self.procseriesselect.get()], filename)
     
     def loadkinseries(self):
         # ask for a filename
-        filename = tk.filedialog.askopenfilename()
+        filename = tkfd.askopenfilename()
         # load the series from the file
         loadedname = 'loaded_'+filename.split('/')[-1].split('.')[0]
         # add the loaded series to the keys of procseriesselect
@@ -696,19 +749,22 @@ class clarakinetics():
 
         # set proccmat to gryscale
         self.procax.set_title(self.cfnames[self.plotprocimageN])
-        self.procax.set_xlabel('X')
-        self.procax.set_ylabel('Y')
+        self.procax.set_xlabel('X in \u03bcm')
+        self.procax.set_ylabel('Y in \u03bcm')
         self.procax.set_aspect('equal')
         self.procax.grid(False)
+
+        # Set the tick labels to the magnification
+        self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+        self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+        # Use MaxNLocator to limit the number of ticks and avoid overlap
+        self.ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+        self.ax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
 
         # add close event
         self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose()) 
         # show the plot
         self.procfig.show()
-
-    def updateprocimage(self):
-        self.updprocimglabel()
-        self.plotprocimage()
     
     def updkinseries(self):
         #self.procseriesselect = ttk.Combobox(self.procplotframe, textvariable=self.procseries, values=[list(self.procimages.keys())])
@@ -750,7 +806,7 @@ class clarakinetics():
     
     def browse_plaser_file(self):
         # Open a file dialog to select the file
-        self.plaserfile = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        self.plaserfile = tkfd.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if self.plaserfile:
             self.plaserfilevar.set(self.plaserfile)
         else:
@@ -763,6 +819,7 @@ class clarakinetics():
             self.Laserpower = ThorPt.obtain_power_data(self.plaserfile)
         except Exception as e:
             print("Error loading Thorlabs Powermeter file:", e)
+            return
 
         #Gett0rame = ptzero.GetXPlotter(self.powercorrframe, self.Laserpower['t'], self.Laserpower['Power'], self.PLaserTzero)
         #self.Get0rame = ptzero.GetXPlotter(self.plasercorrframe, self.Laserpower['t'], self.L['Power'], self.PLaserTzero)
@@ -823,10 +880,10 @@ class clarakinetics():
         # select combobox to select a processed image
         self.selkinserieslabel = tk.Label(self.kinframe, text='Select series:')
         self.selkinserieslabel.grid(row=1, column=0)
-        self.selkinseriesbox = ttk.Combobox(self.kinframe, textvariable=self.selkinseries, values=[list(self.procimages.keys())])
+        self.selkinseriesbox = ttk.Combobox(self.kinframe, textvariable=self.selkinseries, values=list(self.procimages.keys()))
         self.selkinseriesbox.grid(row=1, column=1)
 
-        # add entry for dt (seconds)
+        # add entry for dt (seconds)f
         self.dtlabel = tk.Label(self.kinframe, text='dt (min):')
         self.dtlabel.grid(row=1, column=2)
         self.dtentry = tk.Entry(self.kinframe, textvariable=self.dt, width=10)
@@ -850,9 +907,9 @@ class clarakinetics():
         self.CorrKinByPbox.grid(row=3, column=0, columnspan=2)
 
         # add a parameter for kinetics processing
-        self.kinparamlabel = tk.Label(self.kinframe, text='Parameter:')
+        self.kinparamlabel = tk.Label(self.kinframe, text='Layer thickness:')
         self.kinparamlabel.grid(row=2, column=2)
-        self.kinparam = tk.Entry(self.kinframe, textvariable=self.kinparam, width=10)
+        self.kinparam = tk.Entry(self.kinframe, textvariable=self.kinparamVar, width=10)
         self.kinparam.grid(row=2, column=3)
         
         # create a new instance of NanocrystalKinetics
@@ -861,7 +918,7 @@ class clarakinetics():
         # select Kinetic Series for BG evaluation
         self.bglabel = tk.Label(self.kinframe, text='Kinetic Series for BG:')
         self.bglabel.grid(row=1, column=4)
-        self.bgseries = ttk.Combobox(self.kinframe, values=[list(self.procimages.keys())])
+        self.bgseries = ttk.Combobox(self.kinframe, values=list(self.procimages.keys()))
         self.bgseries.grid(row=1, column=5)
         #self.bgseries.bind('<<ComboboxSelected>>', lambda event: self.setbgseries())
         self.bgseries.set('')
@@ -913,7 +970,7 @@ class clarakinetics():
     
     def exportkinetics(self):
         # ask for a filename
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
+        filename = tkfd.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
         np.savetxt(filename, np.column_stack((np.round(self.Nckin.plotxaxis, 12), np.round(self.Nckin.kinetics_data, 12))), delimiter=';', header='Time (s), Kinetics')
         # export the kinetics data to a file
         with open(filename, 'w') as f:
@@ -1035,7 +1092,7 @@ def plot2dfit(data, popt, dx, dy):
 
     # add colorbars
     fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.87, 0.15, 0.05, 0.7])
+    cbar_ax = fig.add_axes((0.87, 0.15, 0.05, 0.7))
     fig.colorbar(ax[0].imshow(data, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', cmap='viridis'), cax=cbar_ax)
     cbar_ax.set_ylabel('Counts')
     
@@ -1066,11 +1123,12 @@ def find_x_thresh(x0, sigma_x, amplitude, thresh):
     return x_thresh
 
 class Roihandler():
-    def __init__(self, roilist={}, pixmatrix=[[]]):
+    def __init__(self, roilist={}, pixmatrix=[[]], immag=1.0):
         self.roi_mode = True
         self.roi_points = []
         self.roi_lines = []
         self.fig = None
+        self.immag = immag  # magnification factor for the axes
         self.roilist = roilist
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
@@ -1084,13 +1142,25 @@ class Roihandler():
         self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
         self.ax.imshow(pixmatrix, cmap='viridis')
         # plt.axess([left, bottom, width, height])
-        self.ax_button_toggle = plt.axes([0.89, 0.95, 0.1, 0.05])
+        self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
         self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
         self.button_toggle.on_clicked(self.toggle_roi)
-        self.ax_button_clear = plt.axes([0.89, 0.89, 0.1, 0.05])
+        self.ax_button_clear = plt.axes((0.89, 0.89, 0.1, 0.05))
         self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
         self.button_clear.on_clicked(self.clear_roi)
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+
+        #self.procax.set_xlabel('X in \u03bcm')
+        #self.procax.set_ylabel('Y in \u03bcm')
+        #self.procax.set_aspect('equal')
+
+        # Set the tick labels to the magnification
+        #self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+        #self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+        # Use MaxNLocator to limit the number of ticks and avoid overlap
+        self.ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+        self.ax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+
         self.fig.show()
         self.selnewestroi()
 
@@ -1111,6 +1181,16 @@ class Roihandler():
                 cax = ax.imshow(newroi, cmap='viridis')
                 # add colorbar to the plot
                 cbar = fig.colorbar(cax, ax=ax)
+                # Scale the axis ticks by the scaling factor (self.immag) if available
+                if hasattr(self, 'immag'):
+                    xticks = ax.get_xticks()
+                    yticks = ax.get_yticks()
+                    # Set the tick labels to the magnification
+                    self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+                    self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+                    # Use MaxNLocator to limit the number of ticks and avoid overlap
+                    self.ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+                    self.ax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
 
                 plt.show()
                 self.roi_points.clear()
@@ -1167,6 +1247,14 @@ class Roihandler():
         self.ax.set_title('Region of Interest')
         self.ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
         self.ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+        # scale the image to the magnification by self.immag
+        #self.procax.set_xlim(0, roi.shape[1] * self.immag)
+        #self.procax.set_ylim(0, roi.shape[0] * self.immag)
+        self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+        self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+        self.ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # Ensure integer ticks
+        self.ax.yaxis.set_major_locator(MaxNLocator(integer=True))  # Ensure integer ticks
+
         self.fig.canvas.draw()
         self.fig.show()
 
@@ -1175,7 +1263,7 @@ class Roihandler():
             del self.roilist[self.roiselgui.get()]
             self.roiselgui['values'] = list(self.roilist.keys())
             self.selnewestroi()
-            self.fig.canvas.draw()
+            #self.fig.canvas.draw()
         else:
             pass
     
@@ -1211,7 +1299,7 @@ class NanocrystalKinetics:
         """
         self.image_series = image_series
         self.bgcoutarray = bgcoutarray
-        self.kinetics_data = None
+        self.kinetics_data = np.zeros(len(self.image_series))
 
     #            self.bgcarray.append(np.nansum(self.procimages[self.bgseriesname][i]) /
     #                             np.count_nonzero(~np.isnan(self.procimages[self.bgseriesname][i])))
@@ -1257,6 +1345,16 @@ class NanocrystalKinetics:
         else:
             self.kinax.set_ylabel('Image counts integrated x {}'.format(self.axisfactor))
         self.kinax.tick_params(axis='both', which='major', labelsize=14)
+        # Adjust x and y tick labels by multiplying them by the scaling factor (self.immag)
+        xticks = self.kinax.get_xticks()
+        yticks = self.kinax.get_yticks()
+        #self.kinax.set_xticklabels([f"{tick * self.immag:.2f}" for tick in xticks])
+        #self.kinax.set_yticklabels([f"{tick * self.immag:.2f}" for tick in yticks])
+        # If you want to format the ticks, use set_major_formatter, not set_major_locator
+        # Example: self.kinax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x:.1f}"))
+        self.kinax.xaxis.set_major_locator(MaxNLocator(integer=True))  # Ensure integer ticks
+        self.kinax.yaxis.set_major_locator(MaxNLocator(integer=True))  # Ensure integer ticks
+
         self.kinax.grid(True)
         self.kinfig.tight_layout()
         self.kinfig.show()
@@ -1276,7 +1374,10 @@ class PlotManager:
         self.figure, self.ax = plt.subplots()
         self.image = self.ax.imshow(self.data, cmap="viridis")
         self.ax.set_title(self.title)
-        self.figure.canvas.manager.set_window_title(self.title)
+        # Set window title if supported by the backend
+        if hasattr(self.figure.canvas, "manager") and self.figure.canvas.manager is not None:
+            if hasattr(self.figure.canvas.manager, "set_window_title"):
+                self.figure.canvas.manager.set_window_title(self.title)
 
     def update_plot(self, new_data):
         """Updates the plot with new data."""

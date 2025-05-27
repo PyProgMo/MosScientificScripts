@@ -124,10 +124,10 @@ class ClaraApp:
         self.roihandler = cl.Roihandler()
 
     def on_closing(self):
-        try: 
-            self.kin.close()
-        except:
-            pass
+        #try: 
+        #    self.kin.close()
+        #except:
+        #    pass
         self.root.destroy()
 
 Clara = ClaraApp(root)

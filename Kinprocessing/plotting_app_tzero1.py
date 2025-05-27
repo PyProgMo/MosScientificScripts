@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 import matplotlib.lines as lines
 
 import Thorlabs_Pt_reader as Pt_reader
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 
 class GetXPlotter:
     def __init__(self, master, tarray, array, framex, framey, var=None):
@@ -46,7 +46,9 @@ class GetXPlotter:
         
         # Store original zoom handler and override
         self.original_zoom_handler = self.toolbar.zoom
-        self.toolbar.zoom = self._custom_zoom_handler
+        def custom_zoom_handler(*args, **kwargs):
+            self._custom_zoom_handler(*args, **kwargs)
+        self.toolbar.zoom = custom_zoom_handler
         
         self.t0_entry = tk.Entry(self.master)
         
@@ -58,10 +60,10 @@ class GetXPlotter:
     def on_press(self, event):
         if event.inaxes == self.ax:
             self.dragging = True
-            self.update_marker(event.xdata)
-
-    def _custom_zoom_handler(self):
+    def _custom_zoom_handler(self, *args, **kwargs):
         """Custom zoom handler that tracks zoom state"""
+        self.zoom_mode_active = not self.zoom_mode_active
+        self.original_zoom_handler(*args, **kwargs)
         self.zoom_mode_active = not self.zoom_mode_active
         self.original_zoom_handler()
         
