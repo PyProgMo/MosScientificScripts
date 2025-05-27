@@ -252,11 +252,12 @@ class PowerWLplot:
                 maxintN.append(max(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL))
                 # X-Error power error: 0.005+2*3/powerN[-1]
                 # Y-Error counts error: time 0.0005 counts 0.1 = 0.0005+0.1
-                powererror = (0.005+2*3/powerN[-1])*powerN[-1]
+                powererror = (0.05*2*3)*powerN[-1]#/powerN[-1])*powerN[-1]
                 maxintNerror.append([
-                    powererror,                 # X-Error                                                                       
-                    np.std(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL)+maxintN[-1]*(0.0005+0.05) # Y-Error
+                    powererror,                 # old X-Error                                                                       
+                    np.std(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL)+maxintN[-1]# *(0.1+0.05) # Y-Error
                     ])
+                
                 countsintN.append(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL))
                 countsintNerrorx.append(powererror)
                 countsintNerrory.append(np.sqrt(sum(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].PL)))

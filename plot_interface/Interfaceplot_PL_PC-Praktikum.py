@@ -5,6 +5,57 @@ from tkinter import filedialog, ttk
 import os
 
 class PlottingTool:
+    """
+    PlottingTool is a graphical user interface (GUI) application for visualizing and customizing plots 
+    from multiple data files. It provides a variety of options for configuring plot appearance, 
+    normalization, fitting, and exporting.
+    Attributes:
+        root (tk.Tk): The root window of the Tkinter application.
+        filenames (list): List of selected file paths for plotting.
+        line_properties (list): List of dictionaries containing properties for each line/graph.
+        fig (matplotlib.figure.Figure): The current matplotlib figure object.
+        save_path (tk.StringVar): The directory path where plots will be saved.
+        file_name (tk.StringVar): The name of the file to save the plot as.
+    Methods:
+        __init__(root):
+            Initializes the PlottingTool GUI and sets up all widgets and default values.
+        create_labeled_entry(label, variable):
+            Creates a labeled entry widget in the root window.
+        create_labeled_entry_in_frame(label, variable, frame):
+            Creates a labeled entry widget inside a specified frame.
+        create_labeled_entry_with_autoscale(label, variable, command, frame):
+            Creates a labeled entry widget with an "Auto" button for automatic scaling.
+        add_line_property_set(filename=None):
+            Adds a new set of line properties for a selected file.
+        create_line_property_frame(index, line_properties):
+            Creates a frame to display and configure line properties for a specific file.
+        detect_data_start(filename):
+            Detects the line number where numerical data starts in a file.
+        auto_scale_x_min():
+            Automatically calculates and sets the minimum x-axis value based on the data.
+        auto_scale_x_max():
+            Automatically calculates and sets the maximum x-axis value based on the data.
+        auto_scale_y_min():
+            Automatically calculates and sets the minimum y-axis value based on the data.
+        auto_scale_y_max():
+            Automatically calculates and sets the maximum y-axis value based on the data.
+        select_files():
+            Opens a file dialog to select multiple files and updates the UI accordingly.
+        clear_files():
+            Clears the selected files and resets related UI elements.
+        change_path():
+            Opens a directory dialog to change the save path for plots.
+        update_fit_options():
+            Enables or disables the fit options based on the "Enable Fit" checkbox.
+        plot():
+            Generates and displays the plot based on the selected files and user configurations.
+        save_plot():
+            Saves the current plot to the specified file path.
+        export_defaults():
+            Exports the current default values to a text file.
+        load_defaults():
+            Loads default values from a text file.
+    """
     def __init__(self, root):
         self.root = root
         self.root.title("Plotting Tool")
@@ -87,51 +138,6 @@ class PlottingTool:
         self.normalize_max = tk.BooleanVar(value=True)
         self.normalize_max_check = tk.Checkbutton(options_frame, text="Normalize by Max", variable=self.normalize_max)
         self.normalize_max_check.pack(side=tk.LEFT)
-
-        # Fit options in a separate line
-        fit_options_frame = tk.Frame(self.root)
-        fit_options_frame.pack()
-
-        self.fit_enabled = tk.BooleanVar(value=False)
-        self.fit_check = tk.Checkbutton(fit_options_frame, text="Enable Fit", variable=self.fit_enabled, command=self.update_fit_options)
-        self.fit_check.pack(side=tk.LEFT)
-
-        self.fit_type = tk.StringVar(value="Linear")
-        self.fit_dropdown = ttk.Combobox(fit_options_frame, textvariable=self.fit_type, 
-                                         values=["Linear", "Polynomial (x^2)", "Polynomial (x^3)", 
-                                                 "Polynomial (x^4)", "Polynomial (x^5)", "Polynomial (x^6)", 
-                                                 "Exponential"], state="disabled")
-        self.fit_dropdown.pack(side=tk.LEFT)
-
-        self.fit_equation = tk.StringVar(value="Fit Equation: N/A")
-        self.fit_equation_label = tk.Label(fit_options_frame, textvariable=self.fit_equation)
-        self.fit_equation_label.pack(side=tk.LEFT)
-
-        # Fit line style, color, and thickness
-        self.fit_line_styles = {
-            "Solid": "-", 
-            "Dashed": "--", 
-            "Dash-dot": "-.", 
-            "Dotted": ":"
-        }
-        self.fit_line_style = tk.StringVar(value="Solid")
-        self.fit_line_color = tk.StringVar(value="black")
-        self.fit_line_thickness = tk.DoubleVar(value=1.5)
-
-        tk.Label(fit_options_frame, text="Style:").pack(side=tk.LEFT)
-        self.fit_style_dropdown = ttk.Combobox(fit_options_frame, textvariable=self.fit_line_style, values=list(self.fit_line_styles.keys()), state="readonly")
-        self.fit_style_dropdown.pack(side=tk.LEFT)
-
-        tk.Label(fit_options_frame, text="Color:").pack(side=tk.LEFT)
-        tk.Entry(fit_options_frame, textvariable=self.fit_line_color).pack(side=tk.LEFT)
-
-        tk.Label(fit_options_frame, text="Thickness:").pack(side=tk.LEFT)
-        tk.Entry(fit_options_frame, textvariable=self.fit_line_thickness).pack(side=tk.LEFT)
-
-        # Fit legend label
-        self.fit_legend_label = tk.StringVar(value="Fit")
-        tk.Label(fit_options_frame, text="Fit Legend Label:").pack(side=tk.LEFT)
-        tk.Entry(fit_options_frame, textvariable=self.fit_legend_label).pack(side=tk.LEFT)
         
         # Save path
         self.save_path = tk.StringVar(value=os.getcwd())
@@ -165,15 +171,20 @@ class PlottingTool:
         self.filenames = []  # List to hold multiple filenames
         self.fig = None
 
-        # Remove the old Export and Load Defaults section
-        # defaults_frame = tk.Frame(self.root)
-        # defaults_frame.pack()
+        # Initialize fit line styles
+        self.fit_line_styles = {
+            "Solid": "-", 
+            "Dotted": ":", 
+            "Dashed": "--", 
+            "Dash-dot": "-.", 
+            "None": "None"
+        }
 
-        # self.export_defaults_button = tk.Button(defaults_frame, text="Export Defaults", command=self.export_defaults)
-        # self.export_defaults_button.pack(side=tk.LEFT)
-
-        # self.load_defaults_button = tk.Button(defaults_frame, text="Load Defaults", command=self.load_defaults)
-        # self.load_defaults_button.pack(side=tk.LEFT)
+        # Initialize fit equation display variable
+        # Remove global fit equation display
+        # self.fit_equation = tk.StringVar(value="Fit Equation: N/A")
+        # self.fit_equation_label = tk.Label(self.root, textvariable=self.fit_equation, anchor="w")
+        # self.fit_equation_label.pack(anchor="w", pady=5)
     
     def create_labeled_entry(self, label, variable):
         frame = tk.Frame(self.root)
@@ -192,7 +203,6 @@ class PlottingTool:
     
 
     def add_line_property_set(self, filename=None):
-        # Dictionary mapping readable names to Matplotlib linestyles
         line_styles = {
             "Solid": "-", 
             "Dotted": ":", 
@@ -201,21 +211,25 @@ class PlottingTool:
             "None": "None"
         }
 
-
         line_properties = {
             'line_thickness': tk.DoubleVar(value=1.5),
             'line_color': tk.StringVar(value="black"),
             'legend_label': tk.StringVar(value=os.path.basename(filename) if filename else "Graph"),
-            'line_style': tk.StringVar(value="Solid"),  # Default as a key, not value
-            'normalize_point': tk.DoubleVar(value=1.0),  # Default normalization point for this file
-            'plot_as_points': tk.BooleanVar(value=False),  # Option to plot as points
-            'point_size': tk.DoubleVar(value=20),  # Default point size
-            'style_map': line_styles  # Add the style_map to the line_properties dictionary
+            'line_style': tk.StringVar(value="Solid"),
+            'normalize_point': tk.DoubleVar(value=1.0),
+            'plot_as_points': tk.BooleanVar(value=False),
+            'point_size': tk.DoubleVar(value=15),
+            'style_map': line_styles,
+            'fit_enabled': tk.BooleanVar(value=False),
+            'fit_type': tk.StringVar(value="Linear"),
+            'fit_line_style': tk.StringVar(value="Solid"),
+            'fit_line_color': tk.StringVar(value="black"),
+            'fit_line_thickness': tk.DoubleVar(value=1.5),
+            'fit_legend_label': tk.StringVar(value="Fit"),
+            'fit_equation': tk.StringVar(value="Fit Equation: N/A")  # Separate fit equation for each line
         }
 
         self.line_properties.append(line_properties)
-
-        # Create and display the line property frame for this file
         self.create_line_property_frame(len(self.line_properties) - 1, line_properties)
 
     def create_line_property_frame(self, index, line_properties):
@@ -233,21 +247,57 @@ class PlottingTool:
         tk.Label(frame, text="Legend Label:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=line_properties['legend_label']).pack(side=tk.LEFT)
 
-        # Line Style Dropdown
         tk.Label(frame, text="Line Style:").pack(side=tk.LEFT)
         style_menu = tk.OptionMenu(frame, line_properties['line_style'], *line_properties['style_map'].keys())
         style_menu.pack(side=tk.LEFT)
 
-        # Normalization Point Entry
         tk.Label(frame, text="Normalize Point:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=line_properties['normalize_point']).pack(side=tk.LEFT)
 
-        # Plot as Points Checkbox
         tk.Checkbutton(frame, text="Scatter Graph", variable=line_properties['plot_as_points']).pack(side=tk.LEFT)
 
-        # Point Size Entry
         tk.Label(frame, text="Point Size:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=line_properties['point_size']).pack(side=tk.LEFT)
+
+        # Fit checkbox in line with graph options
+        tk.Checkbutton(frame, text="Enable Fit", variable=line_properties['fit_enabled'], 
+                       command=lambda: self.toggle_fit_options(fit_options_frame, line_properties)).pack(side=tk.LEFT)
+
+        # Fit options in a new row beneath the graph options
+        fit_options_frame = tk.Frame(self.line_properties_frame)
+        fit_options_frame.pack(anchor="w", pady=2)  # Align beneath the graph options
+        line_properties['fit_options_frame'] = fit_options_frame  # Store the fit options frame for toggling
+
+    def toggle_fit_options(self, fit_options_frame, line_properties):
+        # Clear existing widgets in the fit options frame
+        for widget in fit_options_frame.winfo_children():
+            widget.destroy()
+
+        if line_properties['fit_enabled'].get():
+            # Add fitting options horizontally in a new row
+            tk.Label(fit_options_frame, text="Fit Type:").pack(side=tk.LEFT)
+            fit_dropdown = ttk.Combobox(fit_options_frame, textvariable=line_properties['fit_type'], 
+                                        values=["Linear", "Polynomial (x^2)", "Polynomial (x^3)", 
+                                                "Polynomial (x^4)", "Polynomial (x^5)", "Polynomial (x^6)", 
+                                                "Exponential"], state="readonly")
+            fit_dropdown.pack(side=tk.LEFT)
+
+            tk.Label(fit_options_frame, text="Style:").pack(side=tk.LEFT)
+            style_dropdown = ttk.Combobox(fit_options_frame, textvariable=line_properties['fit_line_style'], 
+                                          values=list(self.fit_line_styles.keys()), state="readonly")
+            style_dropdown.pack(side=tk.LEFT)
+
+            tk.Label(fit_options_frame, text="Color:").pack(side=tk.LEFT)
+            tk.Entry(fit_options_frame, textvariable=line_properties['fit_line_color']).pack(side=tk.LEFT)
+
+            tk.Label(fit_options_frame, text="Thickness:").pack(side=tk.LEFT)
+            tk.Entry(fit_options_frame, textvariable=line_properties['fit_line_thickness']).pack(side=tk.LEFT)
+
+            tk.Label(fit_options_frame, text="Legend Label:").pack(side=tk.LEFT)
+            tk.Entry(fit_options_frame, textvariable=line_properties['fit_legend_label']).pack(side=tk.LEFT)
+
+            # Add fit equation display for this specific line
+            tk.Label(fit_options_frame, textvariable=line_properties['fit_equation'], anchor="w").pack(side=tk.LEFT)
 
     def detect_data_start(self, filename):
         """Detect the line number where numerical data starts."""
@@ -383,18 +433,18 @@ class PlottingTool:
                          label=line_props['legend_label'].get())
                 
             # Perform fitting if enabled
-            if self.fit_enabled.get():
-                fit_type = self.fit_type.get()
+            if line_props['fit_enabled'].get():
+                fit_type = line_props['fit_type'].get()
                 if fit_type == "Linear":
                     coeffs = np.polyfit(data_x, data_y, 1)
                     fit_func = np.poly1d(coeffs)
-                    self.fit_equation.set(f"Fit Equation: y = {coeffs[0]:.3f}x + {coeffs[1]:.3f}")
+                    line_props['fit_equation'].set(f"Fit Equation: y = {coeffs[0]:.4f}x + {coeffs[1]:.4f}")
                 elif fit_type.startswith("Polynomial"):
                     degree = int(fit_type.split("^")[1][0])  # Extract the degree from the dropdown text
                     coeffs = np.polyfit(data_x, data_y, degree)
                     fit_func = np.poly1d(coeffs)
-                    equation_terms = [f"{coeff:.3f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
-                    self.fit_equation.set(f"Fit Equation: y = {' + '.join(equation_terms)}")
+                    equation_terms = [f"{coeff:.4f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
+                    line_props['fit_equation'].set(f"Fit Equation: y = {' + '.join(equation_terms)}")
                 elif fit_type == "Exponential":
                     # Filter out invalid data_y values
                     valid_indices = data_y > 0
@@ -409,16 +459,16 @@ class PlottingTool:
                     log_y = np.log(filtered_y)
                     coeffs = np.polyfit(filtered_x, log_y, 1)
                     fit_func = lambda x: np.exp(coeffs[1]) * np.exp(coeffs[0] * x)
-                    self.fit_equation.set(f"Fit Equation: y = {np.exp(coeffs[1]):.3f}e^({coeffs[0]:.3f}x)")
+                    line_props['fit_equation'].set(f"Fit Equation: y = {np.exp(coeffs[1]):.4f}e^({coeffs[0]:.4f}x)")
 
                 # Plot the fit function with user-defined style, color, thickness, and legend label
                 fit_x = np.linspace(self.x_min.get(), self.x_max.get(), 500)
                 fit_y = fit_func(fit_x)
                 plt.plot(fit_x, fit_y, 
-                         linestyle=self.fit_line_styles[self.fit_line_style.get()], 
-                         color=self.fit_line_color.get(), 
-                         linewidth=self.fit_line_thickness.get(), 
-                         label=self.fit_legend_label.get())
+                         linestyle=self.fit_line_styles[line_props['fit_line_style'].get()], 
+                         color=line_props['fit_line_color'].get(), 
+                         linewidth=line_props['fit_line_thickness'].get(), 
+                         label=line_props['fit_legend_label'].get())
 
         font = self.selected_font.get()
         legend_font = {'family': font, 'weight': 'normal', 'size': self.legend_fontsize.get()}
@@ -430,8 +480,16 @@ class PlottingTool:
         plt.ylabel(self.y_label.get(), fontdict=label_font)
         
         # Set tick intervals and font
-        x_ticks = np.arange(0, np.ceil(self.x_max.get() / self.x_tick.get()) * self.x_tick.get(), self.x_tick.get())
-        y_ticks = np.arange(0, np.ceil(self.y_max.get() / self.y_tick.get()) * self.y_tick.get(), self.y_tick.get())
+        x_ticks = np.arange(
+            np.floor(self.x_min.get() / self.x_tick.get()) * self.x_tick.get(),
+            np.ceil(self.x_max.get() / self.x_tick.get()) * self.x_tick.get() + self.x_tick.get(),
+            self.x_tick.get()
+        )
+        y_ticks = np.arange(
+            np.floor(self.y_min.get() / self.y_tick.get()) * self.y_tick.get(),
+            np.ceil(self.y_max.get() / self.y_tick.get()) * self.y_tick.get() + self.y_tick.get(),
+            self.y_tick.get()
+        )
 
         # Set tick positions for the x and y axes
         plt.xticks(x_ticks, fontsize=self.tick_fontsize.get(), fontname=font)
