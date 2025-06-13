@@ -755,11 +755,11 @@ class clarakinetics():
         self.procax.grid(False)
 
         # Set the tick labels to the magnification
-        self.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
-        self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
+        self.procax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x * self.immag:.1f}"))
+        self.procax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y * self.immag:.1f}"))
         # Use MaxNLocator to limit the number of ticks and avoid overlap
-        self.ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
-        self.ax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+        self.procax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+        self.procax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
 
         # add close event
         self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose()) 
@@ -1442,8 +1442,11 @@ def comploadimseries(filename):
     - list of np.ndarray, the reconstructed 2D arrays with np.nan values.
     """
     # Load the data
-    with gzip.open(filename, 'rb') as f:
-        data = pickle.load(f)
+    try:
+        with gzip.open(filename, 'rb') as f:
+            data = pickle.load(f)
+    except OSError:
+        raise ValueError("The provided file is not a valid gzip file.")
     
     sparse_series = data['sparse_series']
     placeholder = data['placeholder']
