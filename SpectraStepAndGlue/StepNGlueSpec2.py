@@ -8,7 +8,7 @@ from tkinter import ttk
 class SpectraGluingApp:
     def __init__(self, master):
         self.master = master
-        self.gluemodes = ['remove overlap', 'iterpolate overlap', 'Fermi glue']
+        self.gluemodes = ['remove overlap', 'iterpolate overlap', 'Fermi glue', 'append to normalize']
         master.title("Spectra Gluing Application")
 
         self.label = tk.Label(master, text="Open two spectra files to glue them together.")
@@ -30,6 +30,19 @@ class SpectraGluingApp:
 
         self.glue_button = tk.Button(master, text="Glue Spectra", command=self.glue_spectra)
         self.glue_button.pack()
+
+        # Create a frame for the save path widgets
+        self.save_frame = tk.Frame(master)
+        self.save_frame.pack()
+
+        # Create entry for save path
+        self.save_path_var = tk.StringVar()
+        self.save_path_entry = tk.Entry(self.save_frame, textvariable=self.save_path_var, width=50)
+        self.save_path_entry.pack(side=tk.LEFT)
+
+        # Create browse button
+        self.browse_save = tk.Button(self.save_frame, text="Browse Save Location", command=lambda: self.save_path_var.set(filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt"), ("All files", "*.*")])))
+        self.browse_save.pack(side=tk.LEFT)
 
         self.save_button = tk.Button(master, text="Save Result", command=self.save_result)
         self.save_button.pack()
@@ -87,6 +100,8 @@ class SpectraGluingApp:
             self.dfs1, self.dfs2 = self.interpoverlap(self.dfs1, self.dfs2)
         elif self.gluemode_var.get() == 'Fermi glue':
             self.dfs1, self.dfs2 = self.fermiglue(self.dfs1, self.dfs2)
+        elif self.gluemode_var.get() == 'append to normalize':
+            self.dfs1, self.dfs2 = self.appendnorm(self.dfs1, self.dfs2)
         else:
             print("Invalid glue mode selected.")
             return
@@ -116,9 +131,15 @@ class SpectraGluingApp:
         if self.result is None:
             print("No result to save.")
             return
-        file_path = filedialog.asksaveasfilename(defaultextension=".txt",
+        # if no save path is specified, ask for one
+        if not self.save_path_var.get():
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt",
                                                    filetypes=[("Text files", "*.txt"),
                                                               ("All files", "*.*")])
+        else:
+            file_path = self.save_path_var.get()
+        
+        print("Saving result to:", file_path)
         
         with open(file_path, 'w') as f:
             for key, value in writemetadata.items():
@@ -128,6 +149,32 @@ class SpectraGluingApp:
             for _, row in self.result.iterrows():
                 f.write(f"{row['WL']}\t{row['counts']}\n")
         print("Result saved successfully.")
+    
+    def appendnorm(self, S1, S2, gluepixelength=10):
+        # detect which spectrum has the higher wavelength range
+        wl1s = S1['WL'].iloc[0]
+        wl1e = S1['WL'].iloc[-1]
+        wl2s = S2['WL'].iloc[0]
+        wl2e = S2['WL'].iloc[-1]
+        if wl1s > wl2s: # wl1 is first
+            S1, S2 = S2, S1  # swap S1 and S2
+        # average the last gluepixelength pixels of S1 and the first gluepixelength pixels of S2
+        S1_last = np.sum(S1.iloc[-gluepixelength:]['counts']/ gluepixelength)
+        S2_first = np.sum(S2.iloc[:gluepixelength]['counts']/ gluepixelength)
+        ratio = S1_last / S2_first
+        print('S1_last:', S1_last)
+        print('S2_first:', S2_first)
+        print('ratio:', S1_last / S2_first)
+        # normalize S2 to the ratio of S1_last and S2_first
+        #S2_first['counts'] = S2_first['counts'] * (S1_last
+        S1['counts'] = S1['counts'] / ratio
+
+        # now fermiglue the two spectra
+        S1, S2 = self.fermiglue(S1, S2)
+
+        return S1, S2
+        
+
     
     def removeoverlap(self, S1, S2):
         # Remove overlapping wavelengths of the pd.dataframes S1 and S2
