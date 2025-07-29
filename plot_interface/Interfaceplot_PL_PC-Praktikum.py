@@ -138,6 +138,10 @@ class PlottingTool:
         self.normalize_max = tk.BooleanVar(value=True)
         self.normalize_max_check = tk.Checkbutton(options_frame, text="Normalize by Max", variable=self.normalize_max)
         self.normalize_max_check.pack(side=tk.LEFT)
+
+        self.use_nm2eV = tk.BooleanVar(value=False)
+        self.nm2eV_check = tk.Checkbutton(options_frame, text="Use nm to eV", variable=self.use_nm2eV)
+        self.nm2eV_check.pack(side=tk.LEFT)
         
         # Save path
         self.save_path = tk.StringVar(value=os.getcwd())
@@ -185,6 +189,15 @@ class PlottingTool:
         # self.fit_equation = tk.StringVar(value="Fit Equation: N/A")
         # self.fit_equation_label = tk.Label(self.root, textvariable=self.fit_equation, anchor="w")
         # self.fit_equation_label.pack(anchor="w", pady=5)
+    
+    def nm2eV(self, wl_array):
+        """Convert wavelength in nm to energy in eV."""
+        h = 4.135667696e-15  # Planck's constant in eV·s
+        c = 299792458e9  # Speed of light in nm/s
+        hc = h * c  # Planck's constant times speed of light in eV·nm
+        #eV_array = h * c / wl_array
+        eV_array = np.divide(hc, wl_array)  # Convert wavelength to energy in eV
+        return eV_array
     
     def create_labeled_entry(self, label, variable):
         frame = tk.Frame(self.root)
@@ -405,6 +418,11 @@ class PlottingTool:
                 print(f"Skipping file {filename}: insufficient data.")
                 continue
             data_x, data_y = data[0], data[1]
+
+            # Convert wavelength to energy in eV if checkbox is selected
+            if self.use_nm2eV.get():
+                data_x = self.nm2eV(data_x)
+                self.x_label.set("Energy (eV)")
             
             # Normalize data by point if checkbox is selected
             if self.normalize_data.get():
