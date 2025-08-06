@@ -130,18 +130,63 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
     AutoStageGUI* gui = static_cast<AutoStageGUI*>(clientData);
     
     try {
-        // Get values from entry widgets
-        std::vector<double> params = {
-            std::stod(gui->getEntryValue(".main.input.x_start")),
-            std::stod(gui->getEntryValue(".main.input.y_start")),
-            std::stod(gui->getEntryValue(".main.input.z_start")),
-            std::stod(gui->getEntryValue(".main.input.x_end")),
-            std::stod(gui->getEntryValue(".main.input.y_end")),
-            std::stod(gui->getEntryValue(".main.input.z_end")),
-            std::stod(gui->getEntryValue(".main.input.nx")),
-            std::stod(gui->getEntryValue(".main.input.ny")),
-            std::stod(gui->getEntryValue(".main.input.nz"))
+        // Get values from entry widgets with validation
+        std::vector<double> params(9);
+        
+        // Default values to use if conversion fails
+        std::vector<double> defaults = {0.0, 0.0, 0.0, 300.0, 300.0, 300.0, 10.0, 10.0, 1.0};
+        std::vector<std::string> fieldNames = {
+            ".main.input.x_start", ".main.input.y_start", ".main.input.z_start",
+            ".main.input.x_end", ".main.input.y_end", ".main.input.z_end",
+            ".main.input.nx", ".main.input.ny", ".main.input.nz"
         };
+        std::vector<std::string> fieldLabels = {
+            "X Start", "Y Start", "Z Start", "X End", "Y End", "Z End",
+            "X Steps", "Y Steps", "Z Steps"
+        };
+        
+        std::string validationMessages;
+        bool hasErrors = false;
+        
+        // Validate each input field
+        for (size_t i = 0; i < 9; ++i) {
+            std::string value = gui->getEntryValue(fieldNames[i]);
+            
+            if (value.empty()) {
+                params[i] = defaults[i];
+                validationMessages += fieldLabels[i] + " was empty, using default: " + 
+                                    std::to_string(defaults[i]) + "\n";
+            } else {
+                try {
+                    if (i >= 6) { // Steps fields (nx, ny, nz) should be integers
+                        int intVal = std::stoi(value);
+                        if (intVal < 0) {
+                            throw std::invalid_argument("Steps must be non-negative");
+                        }
+                        params[i] = static_cast<double>(intVal);
+                    } else {
+                        params[i] = std::stod(value);
+                    }
+                } catch (const std::exception&) {
+                    params[i] = defaults[i];
+                    validationMessages += fieldLabels[i] + " '" + value + 
+                                        "' is not a valid number, using default: " + 
+                                        std::to_string(defaults[i]) + "\n";
+                }
+            }
+        }
+        
+        // Show validation messages if any defaults were used
+        if (!validationMessages.empty()) {
+            gui->showInfo("Input Validation:\n" + validationMessages + 
+                         "\nProceeding with corrected values...");
+        }
+        
+        // Debug output to console
+        std::cout << "Creating coordinates with parameters:" << std::endl;
+        std::cout << "X: " << params[0] << " to " << params[3] << " (" << params[6] << " steps)" << std::endl;
+        std::cout << "Y: " << params[1] << " to " << params[4] << " (" << params[7] << " steps)" << std::endl;
+        std::cout << "Z: " << params[2] << " to " << params[5] << " (" << params[8] << " steps)" << std::endl;
         
         gui->coordCreator->createCoordinates(params);
         

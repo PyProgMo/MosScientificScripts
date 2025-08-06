@@ -33,13 +33,33 @@ void AutoStageCoordCreator::createCoordinates(const std::vector<double>& params)
     int ny = static_cast<int>(params[7]);
     int nz = static_cast<int>(params[8]);
     
-    // Apply bounds checking similar to Python version
-    if (x_start > xmin) x_start = xmin;
-    if (x_end < xmax) x_end = xmax;
-    if (y_start > ymin) y_start = ymin;
-    if (y_end < ymax) y_end = ymax;
-    if (z_start > zmin) z_start = zmin;
-    if (z_end < zmax) z_end = zmax;
+    // Debug output to show what we received
+    std::cout << "Received parameters:" << std::endl;
+    std::cout << "X: " << x_start << " to " << x_end << " (" << nx << " steps)" << std::endl;
+    std::cout << "Y: " << y_start << " to " << y_end << " (" << ny << " steps)" << std::endl;
+    std::cout << "Z: " << z_start << " to " << z_end << " (" << nz << " steps)" << std::endl;
+    
+    // Apply bounds checking - only clamp if outside bounds (matching Python logic)
+    // Note: The Python version has some inconsistent logic, but we'll implement proper clamping
+    if (x_start < xmin) x_start = xmin;
+    if (x_start > xmax) x_start = xmax;
+    if (x_end < xmin) x_end = xmin;
+    if (x_end > xmax) x_end = xmax;
+    
+    if (y_start < ymin) y_start = ymin;
+    if (y_start > ymax) y_start = ymax;
+    if (y_end < ymin) y_end = ymin;
+    if (y_end > ymax) y_end = ymax;
+    
+    if (z_start < zmin) z_start = zmin;
+    if (z_start > zmax) z_start = zmax;
+    if (z_end < zmin) z_end = zmin;
+    if (z_end > zmax) z_end = zmax;
+    
+    std::cout << "After bounds checking:" << std::endl;
+    std::cout << "X: " << x_start << " to " << x_end << " (" << nx << " steps)" << std::endl;
+    std::cout << "Y: " << y_start << " to " << y_end << " (" << ny << " steps)" << std::endl;
+    std::cout << "Z: " << z_start << " to " << z_end << " (" << nz << " steps)" << std::endl;
     
     // Generate coordinate arrays
     std::vector<double> x_coords = linspace(x_start, x_end, nx);
