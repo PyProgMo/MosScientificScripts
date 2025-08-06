@@ -34,6 +34,7 @@ private:
     bool validateInputs();
     void showError(const std::string& message);
     void showInfo(const std::string& message);
+    void updateStepsizeDisplay();
     std::string getEntryValue(const std::string& widgetName);
 };
 

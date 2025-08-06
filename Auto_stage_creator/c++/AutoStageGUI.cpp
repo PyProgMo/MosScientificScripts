@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 
 AutoStageGUI::AutoStageGUI() : interp(nullptr) {
     coordCreator = std::make_unique<AutoStageCoordCreator>();
@@ -33,7 +34,7 @@ void AutoStageGUI::setupUI() {
     Tcl_Eval(interp, "wm title . \"AutoStage Coordinate Creator\"");
     
     // Set window size
-    Tcl_Eval(interp, "wm geometry . 500x400");
+    Tcl_Eval(interp, "wm geometry . 500x500");
     
     createWidgets();
     setupCallbacks();
@@ -119,6 +120,28 @@ void AutoStageGUI::createWidgets() {
         
         grid .main.input.lbl_nz -row 4 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.nz -row 4 -column 1 -padx 2 -pady 2
+        
+        # Add stepsize display section
+        label .main.input.lbl_stepsize -text "Calculated Stepsizes:" -font {Arial 10 bold} -fg darkgreen
+        grid .main.input.lbl_stepsize -row 5 -column 0 -columnspan 4 -sticky w -padx 2 -pady {10 2}
+        
+        # X and Y stepsize display
+        label .main.input.lbl_x_stepsize -text "X Stepsize:"
+        label .main.input.x_stepsize -text "N/A" -relief sunken -width 15 -bg white
+        label .main.input.lbl_y_stepsize -text "Y Stepsize:"
+        label .main.input.y_stepsize -text "N/A" -relief sunken -width 15 -bg white
+        
+        grid .main.input.lbl_x_stepsize -row 6 -column 0 -sticky w -padx 2 -pady 2
+        grid .main.input.x_stepsize -row 6 -column 1 -padx 2 -pady 2
+        grid .main.input.lbl_y_stepsize -row 6 -column 2 -sticky w -padx 2 -pady 2
+        grid .main.input.y_stepsize -row 6 -column 3 -padx 2 -pady 2
+        
+        # Z stepsize display
+        label .main.input.lbl_z_stepsize -text "Z Stepsize:"
+        label .main.input.z_stepsize -text "N/A" -relief sunken -width 15 -bg white
+        
+        grid .main.input.lbl_z_stepsize -row 7 -column 0 -sticky w -padx 2 -pady 2
+        grid .main.input.z_stepsize -row 7 -column 1 -padx 2 -pady 2
         
         # Set up tab order for keyboard navigation
         # Tab order: x_start -> x_end -> y_start -> y_end -> z_start -> z_end -> nx -> ny -> nz
@@ -242,6 +265,9 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
         // Enable save button
         Tcl_Eval(interp, ".main.buttons.save configure -state normal");
         
+        // Update stepsize display
+        gui->updateStepsizeDisplay();
+        
     } catch (const std::exception& e) {
         gui->showError("Error creating coordinates: " + std::string(e.what()));
         Tcl_Eval(interp, ".main.status configure -text \"Error creating coordinates\" -fg red");
@@ -296,6 +322,41 @@ void AutoStageGUI::showError(const std::string& message) {
 void AutoStageGUI::showInfo(const std::string& message) {
     std::string cmd = "tk_messageBox -icon info -title \"Success\" -message \"" + message + "\"";
     Tcl_Eval(interp, cmd.c_str());
+}
+
+void AutoStageGUI::updateStepsizeDisplay() {
+    try {
+        // Get the coordinate vectors from the coordCreator
+        const auto& coords = coordCreator->getCoordinates();
+        
+        if (coords.size() >= 2) {
+            // Calculate stepsize as difference between 0th and 1st coordinate
+            double xStepsize = std::abs(std::get<0>(coords[1]) - std::get<0>(coords[0]));
+            double yStepsize = std::abs(std::get<1>(coords[1]) - std::get<1>(coords[0])); 
+            double zStepsize = std::abs(std::get<2>(coords[1]) - std::get<2>(coords[0]));
+            
+            // Format stepsizes with 6 decimal places
+            std::ostringstream xss, yss, zss;
+            xss << std::fixed << std::setprecision(6) << xStepsize;
+            yss << std::fixed << std::setprecision(6) << yStepsize;
+            zss << std::fixed << std::setprecision(6) << zStepsize;
+            
+            // Update the display labels
+            Tcl_Eval(interp, (".main.input.x_stepsize configure -text \"" + xss.str() + "\"").c_str());
+            Tcl_Eval(interp, (".main.input.y_stepsize configure -text \"" + yss.str() + "\"").c_str());
+            Tcl_Eval(interp, (".main.input.z_stepsize configure -text \"" + zss.str() + "\"").c_str());
+        } else {
+            // Not enough coordinates to calculate stepsize
+            Tcl_Eval(interp, ".main.input.x_stepsize configure -text \"N/A\"");
+            Tcl_Eval(interp, ".main.input.y_stepsize configure -text \"N/A\"");
+            Tcl_Eval(interp, ".main.input.z_stepsize configure -text \"N/A\"");
+        }
+    } catch (const std::exception& e) {
+        // Error calculating stepsize
+        Tcl_Eval(interp, ".main.input.x_stepsize configure -text \"Error\"");
+        Tcl_Eval(interp, ".main.input.y_stepsize configure -text \"Error\"");
+        Tcl_Eval(interp, ".main.input.z_stepsize configure -text \"Error\"");
+    }
 }
 
 void AutoStageGUI::run() {

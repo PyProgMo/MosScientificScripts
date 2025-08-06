@@ -16,6 +16,7 @@ public:
     void clearCoordinates();
     
     size_t getCoordinateCount() const { return coordinates.size(); }
+    const std::vector<std::tuple<double, double, double>>& getCoordinates() const { return coordinates; }
     
 private:
     double xmin, xmax, ymin, ymax, zmin, zmax;

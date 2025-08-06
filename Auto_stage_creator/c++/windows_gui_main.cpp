@@ -14,6 +14,7 @@ class WindowsGUI {
 private:
     HWND hWnd, hXStart, hYStart, hZStart, hXEnd, hYEnd, hZEnd;
     HWND hNX, hNY, hNZ, hCreateBtn, hSaveBtn, hStatus;
+    HWND hXStepsize, hYStepsize, hZStepsize; // Stepsize display controls
     AutoStageCoordCreator coordCreator;
     std::vector<HWND> tabOrder; // For tab navigation
     
@@ -68,7 +69,7 @@ public:
         
         hWnd = CreateWindowEx(
             0, className, "AutoStage Coordinate Creator",
-            WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 400,
+            WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 450,
             NULL, NULL, GetModuleHandle(NULL), NULL
         );
         
@@ -132,20 +133,36 @@ public:
         hNZ = CreateWindow("EDIT", "0", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 168, 100, 22, hWnd, (HMENU)2009, NULL, NULL);
             
-        // Buttons (adjusted position for header)
+        // Stepsize display section
+        CreateWindow("STATIC", "X Stepsize:", WS_VISIBLE | WS_CHILD,
+            10, 200, 80, 20, hWnd, NULL, NULL, NULL);
+        hXStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+            100, 198, 100, 22, hWnd, NULL, NULL, NULL);
+            
+        CreateWindow("STATIC", "Y Stepsize:", WS_VISIBLE | WS_CHILD,
+            220, 200, 80, 20, hWnd, NULL, NULL, NULL);
+        hYStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+            300, 198, 100, 22, hWnd, NULL, NULL, NULL);
+            
+        CreateWindow("STATIC", "Z Stepsize:", WS_VISIBLE | WS_CHILD,
+            10, 230, 80, 20, hWnd, NULL, NULL, NULL);
+        hZStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+            100, 228, 100, 22, hWnd, NULL, NULL, NULL);
+            
+        // Buttons (adjusted position for stepsize display)
         hCreateBtn = CreateWindow("BUTTON", "Create Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            50, 210, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
+            50, 260, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
             
         hSaveBtn = CreateWindow("BUTTON", "Save to File", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            220, 210, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
+            220, 260, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
-        // Status label (adjusted position for header)
+        // Status label (adjusted position for stepsize display)
         hStatus = CreateWindow("STATIC", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD,
-            10, 260, 450, 20, hWnd, NULL, NULL, NULL);
+            10, 310, 450, 20, hWnd, NULL, NULL, NULL);
             
         // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Create -> Save
         tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hCreateBtn, hSaveBtn};
@@ -182,6 +199,9 @@ public:
             SetWindowText(hStatus, status.c_str());
             EnableWindow(hSaveBtn, TRUE);
             
+            // Update stepsize display
+            updateStepsizeDisplay();
+            
         } catch (const std::exception& e) {
             MessageBox(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
             SetWindowText(hStatus, "Error creating coordinates");
@@ -211,6 +231,48 @@ public:
                 MessageBox(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
                 SetWindowText(hStatus, "Error saving coordinates");
             }
+        }
+    }
+    
+    void updateStepsizeDisplay() {
+        try {
+            // Get the coordinate vectors from the coordCreator
+            const auto& coords = coordCreator.getCoordinates();
+            
+            if (coords.size() >= 2) {
+                // Calculate stepsize as difference between 0th and 1st coordinate
+                double xStepsize = std::abs(std::get<0>(coords[1]) - std::get<0>(coords[0]));
+                double yStepsize = std::abs(std::get<1>(coords[1]) - std::get<1>(coords[0])); 
+                double zStepsize = std::abs(std::get<2>(coords[1]) - std::get<2>(coords[0]));
+                
+                // Format and display the stepsizes
+                std::string xStepsizeStr = std::to_string(xStepsize);
+                std::string yStepsizeStr = std::to_string(yStepsize);
+                std::string zStepsizeStr = std::to_string(zStepsize);
+                
+                // Limit to 6 decimal places
+                if (xStepsizeStr.find('.') != std::string::npos) {
+                    xStepsizeStr = xStepsizeStr.substr(0, xStepsizeStr.find('.') + 7);
+                }
+                if (yStepsizeStr.find('.') != std::string::npos) {
+                    yStepsizeStr = yStepsizeStr.substr(0, yStepsizeStr.find('.') + 7);
+                }
+                if (zStepsizeStr.find('.') != std::string::npos) {
+                    zStepsizeStr = zStepsizeStr.substr(0, zStepsizeStr.find('.') + 7);
+                }
+                
+                SetWindowText(hXStepsize, xStepsizeStr.c_str());
+                SetWindowText(hYStepsize, yStepsizeStr.c_str());
+                SetWindowText(hZStepsize, zStepsizeStr.c_str());
+            } else {
+                SetWindowText(hXStepsize, "N/A");
+                SetWindowText(hYStepsize, "N/A");
+                SetWindowText(hZStepsize, "N/A");
+            }
+        } catch (const std::exception& e) {
+            SetWindowText(hXStepsize, "Error");
+            SetWindowText(hYStepsize, "Error");
+            SetWindowText(hZStepsize, "Error");
         }
     }
     
