@@ -10,7 +10,7 @@ public:
                          double ymin = 0, double ymax = 300, 
                          double zmin = 0, double zmax = 300);
     
-    void setRounding(int x_round = 2, int y_round = 2, int z_round = 2);
+    void setRounding(int x_round = 3, int y_round = 3, int z_round = 3);
     void createCoordinates(const std::vector<double>& params);
     void writeCoordinates(const std::string& filename);
     void clearCoordinates();
