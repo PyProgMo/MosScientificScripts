@@ -4,6 +4,8 @@
 #include <commdlg.h>
 #include <string>
 #include <sstream>
+#include <vector>
+#include <algorithm>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "comdlg32.lib")
@@ -13,6 +15,7 @@ private:
     HWND hWnd, hXStart, hYStart, hZStart, hXEnd, hYEnd, hZEnd;
     HWND hNX, hNY, hNZ, hCreateBtn, hSaveBtn, hStatus;
     AutoStageCoordCreator coordCreator;
+    std::vector<HWND> tabOrder; // For tab navigation
     
 public:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -30,6 +33,21 @@ public:
                 }
             }
             return 0;
+        case WM_KEYDOWN:
+            if (gui && wParam == VK_TAB) {
+                // Handle tab navigation
+                HWND currentFocus = GetFocus();
+                bool shiftPressed = GetKeyState(VK_SHIFT) & 0x8000;
+                gui->handleTabNavigation(currentFocus, shiftPressed);
+                return 0;
+            }
+            break;
+        case WM_CHAR:
+            if (gui && wParam == VK_TAB) {
+                // Prevent default tab handling
+                return 0;
+            }
+            break;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
@@ -101,17 +119,17 @@ public:
             
         CreateWindow("STATIC", "X Steps:", WS_VISIBLE | WS_CHILD,
             10, 140, 80, 20, hWnd, NULL, NULL, NULL);
-        hNX = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNX = CreateWindow("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 138, 100, 22, hWnd, (HMENU)2007, NULL, NULL);
             
         CreateWindow("STATIC", "Y Steps:", WS_VISIBLE | WS_CHILD,
             220, 140, 80, 20, hWnd, NULL, NULL, NULL);
-        hNY = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNY = CreateWindow("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             300, 138, 100, 22, hWnd, (HMENU)2008, NULL, NULL);
             
         CreateWindow("STATIC", "Z Steps:", WS_VISIBLE | WS_CHILD,
             10, 170, 80, 20, hWnd, NULL, NULL, NULL);
-        hNZ = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNZ = CreateWindow("EDIT", "0", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 168, 100, 22, hWnd, (HMENU)2009, NULL, NULL);
             
         // Buttons (adjusted position for header)
@@ -128,6 +146,12 @@ public:
         hStatus = CreateWindow("STATIC", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD,
             10, 260, 450, 20, hWnd, NULL, NULL, NULL);
+            
+        // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Create -> Save
+        tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hCreateBtn, hSaveBtn};
+        
+        // Set initial focus to first input field
+        SetFocus(hXStart);
     }
     
     std::string getWindowText(HWND hwnd) {
@@ -190,12 +214,34 @@ public:
         }
     }
     
+    void handleTabNavigation(HWND currentFocus, bool shiftPressed) {
+        // Find current control in tab order
+        auto it = std::find(tabOrder.begin(), tabOrder.end(), currentFocus);
+        if (it != tabOrder.end()) {
+            int currentIndex = std::distance(tabOrder.begin(), it);
+            int nextIndex;
+            
+            if (shiftPressed) {
+                // Shift+Tab: go to previous control
+                nextIndex = (currentIndex - 1 + tabOrder.size()) % tabOrder.size();
+            } else {
+                // Tab: go to next control
+                nextIndex = (currentIndex + 1) % tabOrder.size();
+            }
+            
+            SetFocus(tabOrder[nextIndex]);
+        }
+    }
+    
     void run() {
         createWindow();
         MSG msg = {};
         while (GetMessage(&msg, NULL, 0, 0)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            // Use IsDialogMessage for proper tab navigation
+            if (!IsDialogMessage(hWnd, &msg)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
     }
 };
