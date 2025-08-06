@@ -1,0 +1,50 @@
+cmake_minimum_required(VERSION 3.16)
+project(AutoStageCoordCreator)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Try to find Tcl/Tk, but make them optional
+find_package(TCL QUIET)
+find_package(TK QUIET)
+
+if(TCL_FOUND AND TK_FOUND)
+    message(STATUS "Tcl/Tk found - building GUI version")
+    
+    # Build full GUI version
+    add_executable(AutoStageCoordCreator
+        main.cpp
+        AutoStageCoordCreator.cpp
+        AutoStageGUI.cpp
+    )
+    
+    target_link_libraries(AutoStageCoordCreator ${TCL_LIBRARY} ${TK_LIBRARY})
+    target_include_directories(AutoStageCoordCreator PRIVATE ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH})
+    target_compile_definitions(AutoStageCoordCreator PRIVATE HAS_GUI=1)
+    
+else()
+    message(STATUS "Tcl/Tk not found - building console version only")
+    
+    # Build console test version only
+    add_executable(AutoStageCoordCreator
+        test.cpp
+        AutoStageCoordCreator.cpp
+    )
+    
+    target_compile_definitions(AutoStageCoordCreator PRIVATE HAS_GUI=0)
+endif()
+
+# Always build the test executable
+add_executable(test_coord
+    test.cpp
+    AutoStageCoordCreator.cpp
+)
+
+# Set output directory
+set_target_properties(AutoStageCoordCreator PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+set_target_properties(test_coord PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
