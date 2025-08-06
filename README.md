@@ -4,6 +4,12 @@ A collection of useful scripts for various purposes.
 
 ## Available Scripts
 
+### `Auto_stage_creator`
+Create coordinates for PLM VI autostage to prevent "holes" in the autostage map. especially for small steps important
+
+### `Imeagescaling`
+Just run the scripts in the folder: 'rotateimag2.py' and 'sci_rescale_7.py' checkout the two descriptions below
+
 ### `rotateimage2`
 Rotate an image by custom degree
 
@@ -11,16 +17,10 @@ Rotate an image by custom degree
 Add a scale to the image. Open the image, then move the scale.  
 *Note: The scale spawns on the top right corner. Just dragndrop it.*
 
-### `Auto_stage_creator`
-Create coordinates for PLM VI autostage to prevent "holes" in the autostage map. especially for small steps important
-
-### `Imeagescaling`
-Just run the scripts in the folder
-
 ### `Kinprocessing`
 Load Kinetic series of Clara images from PLM (files saved seperately) to process decaying signal
 
-### `Plotspe`
+### `Plotspec`
 Easy template to load a single spectrum and plot it in a jupyter notebook by a "quick'n'dirty" appreach
 
 ### `SpectraStepAndGlue`
