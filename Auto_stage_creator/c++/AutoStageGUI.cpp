@@ -44,17 +44,29 @@ void AutoStageGUI::createWidgets() {
     Tcl_Eval(interp, "frame .main -padx 10 -pady 10");
     Tcl_Eval(interp, "pack .main -fill both -expand true");
     
+    // Create headline frame and labels
+    Tcl_Eval(interp, "frame .main.header");
+    Tcl_Eval(interp, "pack .main.header -fill x -pady 5");
+    
+    // Add headline with instructions
+    Tcl_Eval(interp, "label .main.header.title -text \"Insert coordinates in micrometers\" -font {Arial 12 bold} -fg darkblue");
+    Tcl_Eval(interp, "label .main.header.subtitle -text \"Minimum step size 1 nm\" -font {Arial 10} -fg gray");
+    Tcl_Eval(interp, "pack .main.header.title -anchor w");
+    Tcl_Eval(interp, "pack .main.header.subtitle -anchor w");
+    
     // Create input frame
     Tcl_Eval(interp, "labelframe .main.input -text \"Coordinate Parameters\" -padx 5 -pady 5");
     Tcl_Eval(interp, "pack .main.input -fill x -pady 5");
     
-    // Create grid of input fields (similar to Python tkinter layout)
+    // Create grid of input fields with default values and tab order
     const char* inputScript = R"(
         # Row 0: X Start and X End
         label .main.input.lbl_x_start -text "X Start:"
         entry .main.input.x_start -width 15
+        .main.input.x_start insert 0 "0.000"
         label .main.input.lbl_x_end -text "X End:"
         entry .main.input.x_end -width 15
+        .main.input.x_end insert 0 "300.000"
         
         grid .main.input.lbl_x_start -row 0 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.x_start -row 0 -column 1 -padx 2 -pady 2
@@ -64,8 +76,10 @@ void AutoStageGUI::createWidgets() {
         # Row 1: Y Start and Y End
         label .main.input.lbl_y_start -text "Y Start:"
         entry .main.input.y_start -width 15
+        .main.input.y_start insert 0 "0.000"
         label .main.input.lbl_y_end -text "Y End:"
         entry .main.input.y_end -width 15
+        .main.input.y_end insert 0 "300.000"
         
         grid .main.input.lbl_y_start -row 1 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.y_start -row 1 -column 1 -padx 2 -pady 2
@@ -75,8 +89,10 @@ void AutoStageGUI::createWidgets() {
         # Row 2: Z Start and Z End
         label .main.input.lbl_z_start -text "Z Start:"
         entry .main.input.z_start -width 15
+        .main.input.z_start insert 0 "0.000"
         label .main.input.lbl_z_end -text "Z End:"
         entry .main.input.z_end -width 15
+        .main.input.z_end insert 0 "300.000"
         
         grid .main.input.lbl_z_start -row 2 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.z_start -row 2 -column 1 -padx 2 -pady 2
@@ -86,8 +102,10 @@ void AutoStageGUI::createWidgets() {
         # Row 3: X Steps and Y Steps
         label .main.input.lbl_nx -text "X Steps:"
         entry .main.input.nx -width 15
+        .main.input.nx insert 0 "0.001"
         label .main.input.lbl_ny -text "Y Steps:"
         entry .main.input.ny -width 15
+        .main.input.ny insert 0 "0.001"
         
         grid .main.input.lbl_nx -row 3 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.nx -row 3 -column 1 -padx 2 -pady 2
@@ -97,9 +115,36 @@ void AutoStageGUI::createWidgets() {
         # Row 4: Z Steps
         label .main.input.lbl_nz -text "Z Steps:"
         entry .main.input.nz -width 15
+        .main.input.nz insert 0 "0.001"
         
         grid .main.input.lbl_nz -row 4 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.nz -row 4 -column 1 -padx 2 -pady 2
+        
+        # Set up tab order for keyboard navigation
+        # Tab order: x_start -> x_end -> y_start -> y_end -> z_start -> z_end -> nx -> ny -> nz
+        bind .main.input.x_start <Tab> {focus .main.input.x_end; break}
+        bind .main.input.x_end <Tab> {focus .main.input.y_start; break}
+        bind .main.input.y_start <Tab> {focus .main.input.y_end; break}
+        bind .main.input.y_end <Tab> {focus .main.input.z_start; break}
+        bind .main.input.z_start <Tab> {focus .main.input.z_end; break}
+        bind .main.input.z_end <Tab> {focus .main.input.nx; break}
+        bind .main.input.nx <Tab> {focus .main.input.ny; break}
+        bind .main.input.ny <Tab> {focus .main.input.nz; break}
+        bind .main.input.nz <Tab> {focus .main.input.x_start; break}
+        
+        # Shift+Tab for reverse navigation
+        bind .main.input.x_start <Shift-Tab> {focus .main.input.nz; break}
+        bind .main.input.x_end <Shift-Tab> {focus .main.input.x_start; break}
+        bind .main.input.y_start <Shift-Tab> {focus .main.input.x_end; break}
+        bind .main.input.y_end <Shift-Tab> {focus .main.input.y_start; break}
+        bind .main.input.z_start <Shift-Tab> {focus .main.input.y_end; break}
+        bind .main.input.z_end <Shift-Tab> {focus .main.input.z_start; break}
+        bind .main.input.nx <Shift-Tab> {focus .main.input.z_end; break}
+        bind .main.input.ny <Shift-Tab> {focus .main.input.nx; break}
+        bind .main.input.nz <Shift-Tab> {focus .main.input.ny; break}
+        
+        # Set initial focus to first field
+        focus .main.input.x_start
     )";
     
     Tcl_Eval(interp, inputScript);
@@ -133,8 +178,8 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
         // Get values from entry widgets with validation
         std::vector<double> params(9);
         
-        // Default values to use if conversion fails
-        std::vector<double> defaults = {0.0, 0.0, 0.0, 300.0, 300.0, 300.0, 10.0, 10.0, 1.0};
+        // Default values to use if conversion fails (matching the GUI defaults)
+        std::vector<double> defaults = {0.0, 0.0, 0.0, 300.0, 300.0, 300.0, 0.001, 0.001, 0.001};
         std::vector<std::string> fieldNames = {
             ".main.input.x_start", ".main.input.y_start", ".main.input.z_start",
             ".main.input.x_end", ".main.input.y_end", ".main.input.z_end",

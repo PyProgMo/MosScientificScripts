@@ -60,66 +60,74 @@ public:
     }
     
     void createControls() {
-        // Labels and input fields - similar layout to tkinter version
+        // Create header text
+        CreateWindow("STATIC", "Insert coordinates in micrometers", 
+            WS_VISIBLE | WS_CHILD | SS_LEFT,
+            10, 10, 450, 20, hWnd, NULL, NULL, NULL);
+        CreateWindow("STATIC", "Minimum step size 1 nm", 
+            WS_VISIBLE | WS_CHILD | SS_LEFT,
+            10, 25, 450, 15, hWnd, NULL, NULL, NULL);
+            
+        // Labels and input fields with default values - similar layout to tkinter version
         CreateWindow("STATIC", "X Start:", WS_VISIBLE | WS_CHILD,
-            10, 20, 80, 20, hWnd, NULL, NULL, NULL);
-        hXStart = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            100, 18, 100, 22, hWnd, NULL, NULL, NULL);
+            10, 50, 80, 20, hWnd, NULL, NULL, NULL);
+        hXStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            100, 48, 100, 22, hWnd, (HMENU)2001, NULL, NULL);
             
         CreateWindow("STATIC", "X End:", WS_VISIBLE | WS_CHILD,
-            220, 20, 80, 20, hWnd, NULL, NULL, NULL);
-        hXEnd = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            300, 18, 100, 22, hWnd, NULL, NULL, NULL);
+            220, 50, 80, 20, hWnd, NULL, NULL, NULL);
+        hXEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            300, 48, 100, 22, hWnd, (HMENU)2002, NULL, NULL);
             
         CreateWindow("STATIC", "Y Start:", WS_VISIBLE | WS_CHILD,
-            10, 50, 80, 20, hWnd, NULL, NULL, NULL);
-        hYStart = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            100, 48, 100, 22, hWnd, NULL, NULL, NULL);
+            10, 80, 80, 20, hWnd, NULL, NULL, NULL);
+        hYStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            100, 78, 100, 22, hWnd, (HMENU)2003, NULL, NULL);
             
         CreateWindow("STATIC", "Y End:", WS_VISIBLE | WS_CHILD,
-            220, 50, 80, 20, hWnd, NULL, NULL, NULL);
-        hYEnd = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            300, 48, 100, 22, hWnd, NULL, NULL, NULL);
+            220, 80, 80, 20, hWnd, NULL, NULL, NULL);
+        hYEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            300, 78, 100, 22, hWnd, (HMENU)2004, NULL, NULL);
             
         CreateWindow("STATIC", "Z Start:", WS_VISIBLE | WS_CHILD,
-            10, 80, 80, 20, hWnd, NULL, NULL, NULL);
-        hZStart = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            100, 78, 100, 22, hWnd, NULL, NULL, NULL);
+            10, 110, 80, 20, hWnd, NULL, NULL, NULL);
+        hZStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            100, 108, 100, 22, hWnd, (HMENU)2005, NULL, NULL);
             
         CreateWindow("STATIC", "Z End:", WS_VISIBLE | WS_CHILD,
-            220, 80, 80, 20, hWnd, NULL, NULL, NULL);
-        hZEnd = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            300, 78, 100, 22, hWnd, NULL, NULL, NULL);
+            220, 110, 80, 20, hWnd, NULL, NULL, NULL);
+        hZEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            300, 108, 100, 22, hWnd, (HMENU)2006, NULL, NULL);
             
         CreateWindow("STATIC", "X Steps:", WS_VISIBLE | WS_CHILD,
-            10, 110, 80, 20, hWnd, NULL, NULL, NULL);
-        hNX = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            100, 108, 100, 22, hWnd, NULL, NULL, NULL);
+            10, 140, 80, 20, hWnd, NULL, NULL, NULL);
+        hNX = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            100, 138, 100, 22, hWnd, (HMENU)2007, NULL, NULL);
             
         CreateWindow("STATIC", "Y Steps:", WS_VISIBLE | WS_CHILD,
-            220, 110, 80, 20, hWnd, NULL, NULL, NULL);
-        hNY = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            300, 108, 100, 22, hWnd, NULL, NULL, NULL);
+            220, 140, 80, 20, hWnd, NULL, NULL, NULL);
+        hNY = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            300, 138, 100, 22, hWnd, (HMENU)2008, NULL, NULL);
             
         CreateWindow("STATIC", "Z Steps:", WS_VISIBLE | WS_CHILD,
-            10, 140, 80, 20, hWnd, NULL, NULL, NULL);
-        hNZ = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER,
-            100, 138, 100, 22, hWnd, NULL, NULL, NULL);
+            10, 170, 80, 20, hWnd, NULL, NULL, NULL);
+        hNZ = CreateWindow("EDIT", "0.001", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+            100, 168, 100, 22, hWnd, (HMENU)2009, NULL, NULL);
             
-        // Buttons
+        // Buttons (adjusted position for header)
         hCreateBtn = CreateWindow("BUTTON", "Create Coordinates", 
-            WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-            50, 180, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
+            WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
+            50, 210, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
             
         hSaveBtn = CreateWindow("BUTTON", "Save to File", 
-            WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-            220, 180, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
+            WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
+            220, 210, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
-        // Status label
+        // Status label (adjusted position for header)
         hStatus = CreateWindow("STATIC", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD,
-            10, 230, 450, 20, hWnd, NULL, NULL, NULL);
+            10, 260, 450, 20, hWnd, NULL, NULL, NULL);
     }
     
     std::string getWindowText(HWND hwnd) {
