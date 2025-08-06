@@ -5,15 +5,15 @@ A collection of useful scripts for various purposes.
 ## Available Scripts
 
 ### [`Auto_stage_creator`](Auto_stage_creator)
-Create coordinates for PLM VI autostage to prevent "holes" in the autostage map. especially for small steps important
+Create coordinates for PLM VI autostage to prevent "holes" in the autostage map. especially for small steps important. Availabe for python(Auto_stage_creator/python) and c++(Auto_stage_creator/cpp)
 
-### [`Imeagescaling`](Imeagescaling)
+### [`Imagescaling`](Imagescaling)
 Just run the scripts in the folder: 'rotateimag2.py' and 'sci_rescale_7.py' checkout the two descriptions below
 
-### [`rotateimage2`](rotateimage2)
+### [`rotateimage2`](Imagescaling)
 Rotate an image by custom degree
 
-### [`sci_rescale_X`](sci_rescale_X)
+### [`sci_rescale_X`](Imagescaling)
 Add a scale to the image. Open the image, then move the scale.  
 *Note: The scale spawns on the top right corner. Just dragndrop it.*
 
