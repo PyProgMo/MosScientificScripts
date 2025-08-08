@@ -11,13 +11,18 @@ import Thorlabs_Pt_reader as Pt_reader
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 
 class GetXPlotter:
-    def __init__(self, master, tarray, array, framex, framey, var=None):
+    def __init__(self, master, tarray, array, framex, framey, unit='s', var=None):
         self.master = master
         self.framex = framex
         self.framey = framey
-        self.tarray = tarray
+        self.tarray = tarray # should be in seconds
         self.array = array
         self.marker_position = 0
+        self.unit = unit
+        self.getunitfacotr = {'s': 1, 'ms': 1000, 'min': 1/60, 'h': 1/3600}
+        self.unitfactor = self.getunitfacotr.get(unit, 1)  # Default to seconds if unit not recognized
+        # Convert time array to the specified unit
+        self.tarray = np.array(self.tarray) * self.unitfactor
         self.inpvar = var
         self.dragging = False
 
@@ -98,7 +103,7 @@ class GetXPlotter:
         self.ax.clear()
         
         # Plot the data
-        self.ax.plot(self.tarray, self.array, label='Power vs Time', color='blue')
+        self.ax.plot(self.tarray, self.array, label='Power', color='blue')
         
         # Add a vertical line at the marker position
         self.marker_line = lines.Line2D([self.tarray[self.marker_position], self.tarray[self.marker_position]], 
@@ -107,7 +112,7 @@ class GetXPlotter:
         self.ax.add_line(self.marker_line)
         
         # Set labels and title
-        self.ax.set_xlabel('Time (s)')
+        self.ax.set_xlabel('Time ({})'.format(self.unit))
         self.ax.set_ylabel('Power (W)')
 
         # set left to 0.05 and right to 0.98
@@ -147,14 +152,17 @@ class GetXPlotter:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    spec = Pt_reader.obtain_power_data('Sample.csv')
+    sample = 'Sample.csv' # example path
+    # use "C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Caroline_Kloth\31032025\PL-Laserleistung\Sample.csv" as the sample file
+    sample = 'C:/Users/volib/Desktop/Evaluation/data/2024/Perovskite/Caroline_Kloth/31032025/PL-Laserleistung/Sample.csv'.replace("/", "\\")
+    spec = Pt_reader.obtain_power_data(sample)
     tarray = spec['t'].to_numpy()
     array = spec['Power'].to_numpy()
     # testing with a sine wave
     #tarray = np.linspace(0, 10, 100)
     #array = np.sin(tarray)-0.5
 
-    plotter = GetXPlotter(root, tarray, array, 10, 4)
+    plotter = GetXPlotter(root, tarray, array, 10, 4, unit='h')
     plotter.initplot()
     plotter.plot()
     root.mainloop()
