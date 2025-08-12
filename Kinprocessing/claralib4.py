@@ -741,7 +741,7 @@ class clarakinetics():
         # if plot already exists:
         if self.procplotexists:
             # just adjust the image
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get(), vmin=0)
             
         else:
             # create a new plot
