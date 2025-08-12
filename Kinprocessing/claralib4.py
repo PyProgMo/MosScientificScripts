@@ -1236,7 +1236,8 @@ class Roihandler():
                 self.roi_lines.append(line_plot)
             plt.draw()
         self.roiselgui['values'] = list(self.roilist.keys()) # update the values of the combobox
-        self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
+        if len(self.roiselgui['values']) > 0:
+            self.roiselgui.set(self.roiselgui['values'][-1]) # set the combobox to the newest roi
         
     def clear_roi_points(self):
         self.roi_points.clear()
