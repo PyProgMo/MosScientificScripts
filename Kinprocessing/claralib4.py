@@ -280,7 +280,11 @@ class clarakinetics():
             self.cimages.append(clarafile(roiimfs[i], self.dx, self.dy, False, np.count_nonzero(~np.isnan(roiimfs[i]))))
             self.cimages[i].imagedata = roiimfs[i]
         
-        self.cbarminmaxdict['loaded_series'] = [np.amin(roiimfs), np.amax(roiimfs)]
+        cbarmin = 0
+        if np.amin(roiimfs) < 0:
+            cbarmin = np.amin(roiimfs)
+        
+        self.cbarminmaxdict['loaded_series'] = [cbarmin, np.amax(roiimfs)]
 
         # buld the rest of the GUI
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
@@ -561,6 +565,8 @@ class clarakinetics():
 
         self.cimagemax = cimagemax
         self.cimagemin = cimagemin
+        if self.cimagemin > 0:
+            self.cimagemin = 0  # set to 0 if all images are positive
 
         self.kinplot(self.Notebook, row=2)  # plot the loaded images
         self.buildroiframe(self.Notebook, row=3) # build the roi editing frame
@@ -622,6 +628,8 @@ class clarakinetics():
             if np.amax(self.procimages[seriesname][i]) > cbarmax:
                 cbarmax = np.nanmax(self.procimages[seriesname][i])
         # update cbarminmaxdict
+        if cbarmin > 0:
+            cbarmin = 0
         self.cbarminmaxdict[seriesname] = [cbarmin, cbarmax]
 
         # update the entries in procseriesselect (values = self.procimages)
@@ -734,15 +742,11 @@ class clarakinetics():
         if self.procplotexists:
             # just adjust the image
             self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
-            # delete the colorbar and create a new one
-            #self.proccbar.remove()
-            # get vmin and vmax from self.cbarminmaxdict[seriesname] = [cbarmin, cbarmax]
-            #self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax, vmin=self.cbarminmaxdict[self.procseriesselect.get()][0], vmax=self.cbarminmaxdict[self.procseriesselect.get()][1])
-        
+            
         else:
             # create a new plot
             self.procfig, self.procax = plt.subplots(figsize=(5, 5))
-            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get())
+            self.proccim = self.procax.imshow(self.procpltimg, cmap=self.proccolormap.get(), vmin=0)
             self.procplotexists = True
             # add colorbar
             self.proccbar = self.procfig.colorbar(self.proccim, ax=self.procax)#, vmin=self.cbarminmaxdict[self.procseriesselect.get()][0], vmax=self.cbarminmaxdict[self.procseriesselect.get()][1])
@@ -760,6 +764,12 @@ class clarakinetics():
         # Use MaxNLocator to limit the number of ticks and avoid overlap
         self.procax.xaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
         self.procax.yaxis.set_major_locator(MaxNLocator(nbins='auto', integer=True, prune='both'))
+
+        # set the minimum of the colorbar to 0 if all images are positive
+        if self.cbarminmaxdict[self.procseriesselect.get()][0] > 0:
+            self.cbarmin = 0
+        else:
+            self.cbarmin = self.cbarminmaxdict[self.procseriesselect.get()][0]
 
         # add close event
         self.procfig.canvas.mpl_connect('close_event', lambda event: self.procclose()) 

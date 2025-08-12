@@ -20,7 +20,11 @@ class GetXPlotter:
         self.marker_position = 0
         self.unit = unit
         self.getunitfacotr = {'s': 1, 'ms': 1000, 'min': 1/60, 'h': 1/3600}
-        self.unitfactor = self.getunitfacotr.get(unit, 1)  # Default to seconds if unit not recognized
+        if self.unit in list(self.getunitfacotr.keys()):
+            self.unitfactor = self.getunitfacotr[self.unit]
+        else:
+            print(f"Unit '{self.unit}' not recognized. Using seconds as default.")
+            self.unitfactor = 1
         # Convert time array to the specified unit
         self.tarray = np.array(self.tarray) * self.unitfactor
         self.inpvar = var
