@@ -1523,11 +1523,12 @@ def k1model(t, k, A, C=0):
     k : float : Rate constant (1/s)
     A : float : Initial amplitude (concentration)
     C : float : Additional constant shift (default is 0)
+    change: kinetics in real live go down to 0, so +C is zero in real model
 
     Returns:
     float or array : Concentration at time t
     """
-    return A * np.exp(-k * t) + C
+    return A * np.exp(-k * t) #+ C
 
 def k2model(t, k, A0, C=0):
     """
