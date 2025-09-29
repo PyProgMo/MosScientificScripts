@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os, sys, re, cv2, copy, gzip, pickle, copy, bz2, csv
+import threading
 from scipy.optimize import curve_fit
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
@@ -195,6 +196,7 @@ class clarakinetics():
         self.PLaserTzero = tk.DoubleVar()
         self.magnification = tk.StringVar()
         self.CorrKinByPower = tk.BooleanVar()
+        self.KinUseBg = tk.BooleanVar()
         self.claramags = {'20x': 0.0568, '50x': 0.0227, '100x': 0.0113} # magnification in mum/pixel for Clara images
         self.immag = self.claramags[list(self.claramags.keys())[0]]  # default magnification
         self.CorrKinByPower.set(False)
@@ -711,9 +713,21 @@ class clarakinetics():
     def savekinseries(self):
         # ask for a filename
         filename = tkfd.asksaveasfilename(defaultextension='.roiims')
-        # save the series to the file
-        #np.save(filename, self.procimages[self.procseriesselect.get()])
-        compsaveimseries(self.procimages[self.procseriesselect.get()], filename)
+        if filename:  # Only proceed if user didn't cancel the dialog
+            # save the series to the file in a separate thread
+            # Get the current selected series data
+            series_data = self.procimages[self.procseriesselect.get()]
+            
+            # Create and start a separate thread for saving
+            save_thread = threading.Thread(
+                target=compsaveimseries, 
+                args=(series_data, filename),
+                daemon=True  # Thread will close when main program closes
+            )
+            save_thread.start()
+            
+            # Optionally, you could add a status message to inform the user
+            print(f"Saving series to {filename} in background...")
     
     def loadkinseries(self):
         # ask for a filename
@@ -851,7 +865,6 @@ class clarakinetics():
 
         except Exception as e:
             # create a pandas frame to
-            print("Error getting power correction array. Error:", e)
             self.LaserPowerCArraySig = np.ones(10)
             self.LaserPowerCArraytime = np.linspace(0, 10, 10)
 
@@ -916,6 +929,10 @@ class clarakinetics():
         self.CorrKinByPbox = tk.Checkbutton(self.kinframe, text='Correct Kinetics by Power', variable=self.CorrKinByPower)
         self.CorrKinByPbox.grid(row=3, column=0, columnspan=2)
 
+        # add a checkbox to set KinuseBG state
+        self.KinuseBGbox = tk.Checkbutton(self.kinframe, text='Use BG correction', variable=self.KinUseBg)
+        self.KinuseBGbox.grid(row=3, column=2, columnspan=2)
+
         # add a parameter for kinetics processing
         self.kinparamlabel = tk.Label(self.kinframe, text='Layer thickness:')
         self.kinparamlabel.grid(row=2, column=2)
@@ -949,10 +966,13 @@ class clarakinetics():
     def comptokin(self):
         self.deltat = float(self.dt.get())
         # check if bgseries is set
-        if self.bgseries.get() == '':
+        if self.KinUseBg.get() == False:
             self.bgcarray = np.zeros(len(self.procimages[self.procseriesselect.get()]))
         else:
-            self.setbgseries()
+            if self.bgseries.get() == '':
+                self.bgcarray = np.zeros(len(self.procimages[self.procseriesselect.get()]))
+            else:
+                self.setbgseries()
         self.Nckin.bgcoutarray = self.bgcarray
 
         self.kinetics_data = self.Nckin.compute_kinetics1(self.procimages[self.selkinseries.get()], float(self.dt.get()), self.kinmethod.get())
@@ -963,7 +983,6 @@ class clarakinetics():
             if self.LaserPowerCArraySig is not None:
                 # get the power correction array
                 self.powercorrarr = np.interp(self.Nckin.plotxaxis*60, self.LaserPowerCArraytime, self.LaserPowerCArraySig)
-                print('Power correction array:', self.powercorrarr)
             else:
                 print('No power correction array set.')
             
@@ -1352,7 +1371,7 @@ class NanocrystalKinetics:
         self.kinax.set_title('Nanocrystal Kinetics')
         self.kinax.set_xlabel('Time (h)')
         if axisfactor == 1:
-            self.kinax.set_ylabel('Image counts integrated')
+            self.kinax.set_ylabel('Image counts integrated', fontsize=14)
         else:
             self.kinax.set_ylabel('Image counts integrated x {}'.format(self.axisfactor))
         self.kinax.tick_params(axis='both', which='major', labelsize=14)
