@@ -616,6 +616,11 @@ class clarakinetics():
     def multiroi2imagedata(self):
         roi = self.roilist[self.roiselgui.get()]
         seriesname = f'{self.roiselgui.get()}_series'
+        for i in range(len(self.imageseries)+1):
+            seriesname = f'{self.roiselgui.get()}_series_{i}'
+            if seriesname not in self.procimages:
+                break
+            
         # copy imageseries and store them in self.procimages
         self.procimages[seriesname] = copy.deepcopy(self.imageseries)
         # apply roi to the imageseries, set to to nan where roi is 0
@@ -1460,6 +1465,8 @@ def compsaveimseries(array_series, filename):
     # Save the sparse matrices and placeholder using gzip compression
     with gzip.open(filename, 'wb') as f:
         pickle.dump({'sparse_series': sparse_series, 'placeholder': placeholder}, f)
+
+    print(f"Compressed image series saved to {filename}")
 
 def comploadimseries(filename):
     """
