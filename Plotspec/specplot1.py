@@ -42,4 +42,4 @@ def read_and_plot(filename):
 # change working directory to the dir of this file
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # Example usage:
-read_and_plot('spect1.txt')
+read_and_plot('spect2.txt')
