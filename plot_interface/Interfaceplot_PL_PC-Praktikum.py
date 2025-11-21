@@ -403,7 +403,7 @@ class PlottingTool:
             self.fit_dropdown.config(state="disabled")
             self.fit_equation.set("Fit Equation: N/A")
 
-    def plot(self):
+    def plot(self, delimiter="\t"):
         if not self.filenames:
             print("No files selected.")
             return
@@ -413,7 +413,7 @@ class PlottingTool:
         # Plot each selected file with corresponding line properties
         for i, filename in enumerate(self.filenames):
             data_start = self.detect_data_start(filename)
-            data = np.loadtxt(filename, unpack=True, skiprows=data_start)
+            data = np.loadtxt(filename, unpack=True, skiprows=data_start, delimiter=delimiter)
             if data.ndim < 2 or data.shape[0] < 2:
                 print(f"Skipping file {filename}: insufficient data.")
                 continue
