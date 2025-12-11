@@ -183,9 +183,19 @@ void AutoStageGUI::createWidgets() {
     Tcl_Eval(interp, "pack .main.buttons.create -side left -padx 5");
     Tcl_Eval(interp, "pack .main.buttons.save -side left -padx 5");
     
-    // Create status label
-    Tcl_Eval(interp, "label .main.status -text \"Ready to create coordinates...\" -fg blue");
-    Tcl_Eval(interp, "pack .main.status -fill x -pady 5");
+    // Create status display with text widget and scrollbar
+    Tcl_Eval(interp, "frame .main.statusframe");
+    Tcl_Eval(interp, "text .main.statusframe.status -height 5 -width 60 -wrap word -bg lightgray -fg black -state disabled -relief sunken -borderwidth 2");
+    Tcl_Eval(interp, "scrollbar .main.statusframe.scroll -command \".main.statusframe.status yview\"");
+    Tcl_Eval(interp, ".main.statusframe.status configure -yscrollcommand \".main.statusframe.scroll set\"");
+    Tcl_Eval(interp, "pack .main.statusframe.scroll -side right -fill y");
+    Tcl_Eval(interp, "pack .main.statusframe.status -side left -fill both -expand true");
+    Tcl_Eval(interp, "pack .main.statusframe -fill both -expand true -pady 5");
+    
+    // Insert initial message
+    Tcl_Eval(interp, ".main.statusframe.status configure -state normal");
+    Tcl_Eval(interp, ".main.statusframe.status insert end \"Ready to create coordinates...\"");
+    Tcl_Eval(interp, ".main.statusframe.status configure -state disabled");
 }
 
 void AutoStageGUI::setupCallbacks() {
@@ -260,7 +270,7 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
         
         // Update status
         std::string statusMsg = "Successfully created " + std::to_string(gui->coordCreator->getCoordinateCount()) + " coordinates";
-        Tcl_Eval(interp, (".main.status configure -text \"" + statusMsg + "\" -fg green").c_str());
+        gui->updateStatus(statusMsg);
         
         // Enable save button
         Tcl_Eval(interp, ".main.buttons.save configure -state normal");
@@ -270,7 +280,7 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
         
     } catch (const std::exception& e) {
         gui->showError("Error creating coordinates: " + std::string(e.what()));
-        Tcl_Eval(interp, ".main.status configure -text \"Error creating coordinates\" -fg red");
+        gui->updateStatus("Error creating coordinates: " + std::string(e.what()));
     }
     
     return TCL_OK;
@@ -292,13 +302,13 @@ int AutoStageGUI::saveToFileCallback(ClientData clientData, Tcl_Interp *interp, 
                 gui->coordCreator->writeCoordinates(filename);
                 
                 std::string statusMsg = "Coordinates saved to: " + filename;
-                Tcl_Eval(interp, (".main.status configure -text \"" + statusMsg + "\" -fg green").c_str());
+                gui->updateStatus(statusMsg);
                 
                 gui->showInfo("Coordinates successfully saved to:\n" + filename);
                 
             } catch (const std::exception& e) {
                 gui->showError("Failed to save coordinates: " + std::string(e.what()));
-                Tcl_Eval(interp, ".main.status configure -text \"Error saving coordinates\" -fg red");
+                gui->updateStatus("Error saving coordinates: " + std::string(e.what()));
             }
         }
     }
@@ -322,6 +332,23 @@ void AutoStageGUI::showError(const std::string& message) {
 void AutoStageGUI::showInfo(const std::string& message) {
     std::string cmd = "tk_messageBox -icon info -title \"Success\" -message \"" + message + "\"";
     Tcl_Eval(interp, cmd.c_str());
+}
+
+void AutoStageGUI::updateStatus(const std::string& message) {
+    // Clear the text widget and insert new message
+    Tcl_Eval(interp, ".main.statusframe.status configure -state normal");
+    Tcl_Eval(interp, ".main.statusframe.status delete 1.0 end");
+    std::string escapedMsg = message;
+    // Escape quotes in the message
+    size_t pos = 0;
+    while ((pos = escapedMsg.find("\"", pos)) != std::string::npos) {
+        escapedMsg.replace(pos, 1, "\\\"");
+        pos += 2;
+    }
+    Tcl_Eval(interp, (".main.statusframe.status insert end \"" + escapedMsg + "\"").c_str());
+    Tcl_Eval(interp, ".main.statusframe.status configure -state disabled");
+    // Scroll to the end
+    Tcl_Eval(interp, ".main.statusframe.status see end");
 }
 
 void AutoStageGUI::updateStepsizeDisplay() {

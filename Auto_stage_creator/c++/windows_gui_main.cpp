@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
+#include <richedit.h>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -69,7 +70,7 @@ public:
         
         hWnd = CreateWindowEx(
             0, className, "AutoStage Coordinate Creator",
-            WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 450,
+            WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 460,
             NULL, NULL, GetModuleHandle(NULL), NULL
         );
         
@@ -159,10 +160,10 @@ public:
             220, 260, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
-        // Status label (adjusted position for stepsize display)
-        hStatus = CreateWindow("STATIC", "Ready to create coordinates...", 
-            WS_VISIBLE | WS_CHILD,
-            10, 310, 450, 20, hWnd, NULL, NULL, NULL);
+        // Status display (multi-line edit control with scrollbar)
+        hStatus = CreateWindow("EDIT", "Ready to create coordinates...", 
+            WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
+            10, 300, 470, 100, hWnd, NULL, NULL, NULL);
             
         // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Create -> Save
         tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hCreateBtn, hSaveBtn};
