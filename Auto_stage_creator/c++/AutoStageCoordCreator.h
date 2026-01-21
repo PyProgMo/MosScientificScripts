@@ -12,7 +12,7 @@ public:
     
     void setRounding(int x_round = 3, int y_round = 3, int z_round = 3);
     void createCoordinates(const std::vector<double>& params);
-    void writeCoordinates(const std::string& filename);
+    void writeCoordinates(const std::string& filename, bool scramble = false);
     void clearCoordinates();
     
     size_t getCoordinateCount() const { return coordinates.size(); }

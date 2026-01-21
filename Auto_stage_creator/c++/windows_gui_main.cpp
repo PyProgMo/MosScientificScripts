@@ -16,6 +16,7 @@ private:
     HWND hWnd, hXStart, hYStart, hZStart, hXEnd, hYEnd, hZEnd;
     HWND hNX, hNY, hNZ, hCreateBtn, hSaveBtn, hStatus;
     HWND hXStepsize, hYStepsize, hZStepsize; // Stepsize display controls
+    HWND hScramble; // Random Scramble Checkbox
     AutoStageCoordCreator coordCreator;
     std::vector<HWND> tabOrder; // For tab navigation
     
@@ -149,24 +150,29 @@ public:
             10, 230, 80, 20, hWnd, NULL, NULL, NULL);
         hZStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
             100, 228, 100, 22, hWnd, NULL, NULL, NULL);
+
+        // Random Scramble Checkbox
+        hScramble = CreateWindow("BUTTON", "Random Scramble Coordinates", 
+            WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX | WS_TABSTOP,
+            10, 260, 250, 20, hWnd, (HMENU)2010, NULL, NULL);
             
-        // Buttons (adjusted position for stepsize display)
+        // Buttons (adjusted position for stepsize display and checkbox)
         hCreateBtn = CreateWindow("BUTTON", "Create Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            50, 260, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
+            50, 290, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
             
         hSaveBtn = CreateWindow("BUTTON", "Save to File", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            220, 260, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
+            220, 290, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
         // Status display (multi-line edit control with scrollbar)
         hStatus = CreateWindow("EDIT", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-            10, 300, 470, 100, hWnd, NULL, NULL, NULL);
+            10, 330, 470, 100, hWnd, NULL, NULL, NULL);
             
-        // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Create -> Save
-        tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hCreateBtn, hSaveBtn};
+        // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Scramble -> Create -> Save
+        tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hScramble, hCreateBtn, hSaveBtn};
         
         // Set initial focus to first input field
         SetFocus(hXStart);
@@ -223,8 +229,11 @@ public:
         
         if (GetSaveFileName(&ofn)) {
             try {
-                coordCreator.writeCoordinates(fileName);
+                bool scramble = (SendMessage(hScramble, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                coordCreator.writeCoordinates(fileName, scramble);
+                
                 std::string status = "Coordinates saved to: " + std::string(fileName);
+                if (scramble) status += " (Scrambled)";
                 SetWindowText(hStatus, status.c_str());
                 MessageBox(hWnd, ("Coordinates successfully saved to:\n" + 
                     std::string(fileName)).c_str(), "Success", MB_OK | MB_ICONINFORMATION);

@@ -61,6 +61,8 @@ void AutoStageGUI::createWidgets() {
     
     // Create grid of input fields with default values and tab order
     const char* inputScript = R"(
+        set scramble_var 0
+
         # Row 0: X Start and X End
         label .main.input.lbl_x_start -text "X Start:"
         entry .main.input.x_start -width 15
@@ -142,6 +144,10 @@ void AutoStageGUI::createWidgets() {
         
         grid .main.input.lbl_z_stepsize -row 7 -column 0 -sticky w -padx 2 -pady 2
         grid .main.input.z_stepsize -row 7 -column 1 -padx 2 -pady 2
+        
+        # Random Scramble Checkbox
+        checkbutton .main.input.chk_scramble -text "Random Scramble Coordinates" -variable scramble_var
+        grid .main.input.chk_scramble -row 8 -column 0 -columnspan 4 -sticky w -padx 2 -pady 5
         
         # Set up tab order for keyboard navigation
         # Tab order: x_start -> x_end -> y_start -> y_end -> z_start -> z_end -> nx -> ny -> nz
@@ -299,9 +305,17 @@ int AutoStageGUI::saveToFileCallback(ClientData clientData, Tcl_Interp *interp, 
         
         if (!filename.empty() && filename != "0") {
             try {
-                gui->coordCreator->writeCoordinates(filename);
+                // Get scramble state
+                bool scramble = false;
+                if (Tcl_Eval(interp, "set scramble_var") == TCL_OK) {
+                    std::string val = Tcl_GetStringResult(interp);
+                    scramble = (val == "1");
+                }
+
+                gui->coordCreator->writeCoordinates(filename, scramble);
                 
                 std::string statusMsg = "Coordinates saved to: " + filename;
+                if (scramble) statusMsg += " (Scrambled)";
                 gui->updateStatus(statusMsg);
                 
                 gui->showInfo("Coordinates successfully saved to:\n" + filename);

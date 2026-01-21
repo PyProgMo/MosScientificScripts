@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <iostream>
 #include <cmath>
+#include <algorithm>
+#include <random>
 
 AutoStageCoordCreator::AutoStageCoordCreator(double xmin, double xmax, 
                                            double ymin, double ymax, 
@@ -92,7 +94,7 @@ void AutoStageCoordCreator::createCoordinates(const std::vector<double>& params)
     }
 }
 
-void AutoStageCoordCreator::writeCoordinates(const std::string& filename) {
+void AutoStageCoordCreator::writeCoordinates(const std::string& filename, bool scramble) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file for writing: " + filename);
@@ -101,16 +103,25 @@ void AutoStageCoordCreator::writeCoordinates(const std::string& filename) {
     if (coordinates.empty()) {
         throw std::runtime_error("No coordinates to write");
     }
+
+    // Create a copy of coordinates to potentially scramble
+    std::vector<std::tuple<double, double, double>> coordsToWrite = coordinates;
+    
+    if (scramble) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(coordsToWrite.begin(), coordsToWrite.end(), g);
+    }
     
     // Write first coordinate without newline prefix
-    auto [x, y, z] = coordinates[0];
+    auto [x, y, z] = coordsToWrite[0];
     file << formatDouble(x, roundx) << "," 
          << formatDouble(y, roundy) << "," 
          << formatDouble(z, roundz);
     
     // Write remaining coordinates with newline prefix
-    for (size_t i = 1; i < coordinates.size(); ++i) {
-        auto [x, y, z] = coordinates[i];
+    for (size_t i = 1; i < coordsToWrite.size(); ++i) {
+        auto [x, y, z] = coordsToWrite[i];
         file << "\n" << formatDouble(x, roundx) << "," 
              << formatDouble(y, roundy) << "," 
              << formatDouble(z, roundz);
