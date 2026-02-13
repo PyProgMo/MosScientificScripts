@@ -246,39 +246,65 @@ public:
     
     void updateStepsizeDisplay() {
         try {
-            // Get the coordinate vectors from the coordCreator
-            const auto& coords = coordCreator.getCoordinates();
+            // Get inputs directly to calculate proper step sizes
+            // We can't rely just on coords[1]-coords[0] because of the loop nesting
             
-            if (coords.size() >= 2) {
-                // Calculate stepsize as difference between 0th and 1st coordinate
-                double xStepsize = std::abs(std::get<0>(coords[1]) - std::get<0>(coords[0]));
-                double yStepsize = std::abs(std::get<1>(coords[1]) - std::get<1>(coords[0])); 
-                double zStepsize = std::abs(std::get<2>(coords[1]) - std::get<2>(coords[0]));
-                
-                // Format and display the stepsizes
-                std::string xStepsizeStr = std::to_string(xStepsize);
-                std::string yStepsizeStr = std::to_string(yStepsize);
-                std::string zStepsizeStr = std::to_string(zStepsize);
-                
-                // Limit to 6 decimal places
-                if (xStepsizeStr.find('.') != std::string::npos) {
-                    xStepsizeStr = xStepsizeStr.substr(0, xStepsizeStr.find('.') + 7);
-                }
-                if (yStepsizeStr.find('.') != std::string::npos) {
-                    yStepsizeStr = yStepsizeStr.substr(0, yStepsizeStr.find('.') + 7);
-                }
-                if (zStepsizeStr.find('.') != std::string::npos) {
-                    zStepsizeStr = zStepsizeStr.substr(0, zStepsizeStr.find('.') + 7);
-                }
-                
-                SetWindowText(hXStepsize, xStepsizeStr.c_str());
-                SetWindowText(hYStepsize, yStepsizeStr.c_str());
-                SetWindowText(hZStepsize, zStepsizeStr.c_str());
-            } else {
-                SetWindowText(hXStepsize, "N/A");
-                SetWindowText(hYStepsize, "N/A");
-                SetWindowText(hZStepsize, "N/A");
+            double xStart = std::stod(getWindowText(hXStart));
+            double xEnd = std::stod(getWindowText(hXEnd));
+            int nx = std::stoi(getWindowText(hNX));
+            
+            double yStart = std::stod(getWindowText(hYStart));
+            double yEnd = std::stod(getWindowText(hYEnd));
+            int ny = std::stoi(getWindowText(hNY));
+            
+            double zStart = std::stod(getWindowText(hZStart));
+            double zEnd = std::stod(getWindowText(hZEnd));
+            int nz = std::stoi(getWindowText(hNZ));
+            
+            // Apply bounds checking (matching logic in AutoStageCoordCreator)
+            double xmin = 0, xmax = 300;
+            double ymin = 0, ymax = 300;
+            double zmin = 0, zmax = 300;
+            
+            if (xStart < xmin) xStart = xmin;
+            if (xStart > xmax) xStart = xmax;
+            if (xEnd < xmin) xEnd = xmin;
+            if (xEnd > xmax) xEnd = xmax;
+            
+            if (yStart < ymin) yStart = ymin;
+            if (yStart > ymax) yStart = ymax;
+            if (yEnd < ymin) yEnd = ymin;
+            if (yEnd > ymax) yEnd = ymax;
+            
+            if (zStart < zmin) zStart = zmin;
+            if (zStart > zmax) zStart = zmax;
+            if (zEnd < zmin) zEnd = zmin;
+            if (zEnd > zmax) zEnd = zmax;
+
+            // Calculate stepsizes
+            double xStepsize = (nx > 1) ? std::abs(xEnd - xStart) / (nx - 1) : 0.0;
+            double yStepsize = (ny > 1) ? std::abs(yEnd - yStart) / (ny - 1) : 0.0;
+            double zStepsize = (nz > 1) ? std::abs(zEnd - zStart) / (nz - 1) : 0.0;
+            
+            // Format and display the stepsizes
+            std::string xStepsizeStr = std::to_string(xStepsize);
+            std::string yStepsizeStr = std::to_string(yStepsize);
+            std::string zStepsizeStr = std::to_string(zStepsize);
+            
+            // Limit to 6 decimal places
+            if (xStepsizeStr.find('.') != std::string::npos) {
+                xStepsizeStr = xStepsizeStr.substr(0, xStepsizeStr.find('.') + 7);
             }
+            if (yStepsizeStr.find('.') != std::string::npos) {
+                yStepsizeStr = yStepsizeStr.substr(0, yStepsizeStr.find('.') + 7);
+            }
+            if (zStepsizeStr.find('.') != std::string::npos) {
+                zStepsizeStr = zStepsizeStr.substr(0, zStepsizeStr.find('.') + 7);
+            }
+            
+            SetWindowText(hXStepsize, xStepsizeStr.c_str());
+            SetWindowText(hYStepsize, yStepsizeStr.c_str());
+            SetWindowText(hZStepsize, zStepsizeStr.c_str());
         } catch (const std::exception& e) {
             SetWindowText(hXStepsize, "Error");
             SetWindowText(hYStepsize, "Error");
