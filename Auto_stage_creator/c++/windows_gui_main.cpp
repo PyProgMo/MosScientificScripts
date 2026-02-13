@@ -22,7 +22,7 @@ private:
     
 public:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-        WindowsGUI* gui = reinterpret_cast<WindowsGUI*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        WindowsGUI* gui = reinterpret_cast<WindowsGUI*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
         
         switch (uMsg) {
         case WM_CREATE:
@@ -55,119 +55,119 @@ public:
             PostQuitMessage(0);
             return 0;
         }
-        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        return DefWindowProcA(hwnd, uMsg, wParam, lParam);
     }
     
     void createWindow() {
         const char* className = "AutoStageGUI";
-        WNDCLASS wc = {};
+        WNDCLASSA wc = {};
         wc.lpfnWndProc = WindowProc;
-        wc.hInstance = GetModuleHandle(NULL);
+        wc.hInstance = GetModuleHandleA(NULL);
         wc.lpszClassName = className;
         wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-        wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+        wc.hCursor = LoadCursorA(NULL, (LPCSTR)IDC_ARROW);
         
-        RegisterClass(&wc);
+        RegisterClassA(&wc);
         
-        hWnd = CreateWindowEx(
+        hWnd = CreateWindowExA(
             0, className, "AutoStage Coordinate Creator",
             WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 460,
-            NULL, NULL, GetModuleHandle(NULL), NULL
+            NULL, NULL, GetModuleHandleA(NULL), NULL
         );
         
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
         createControls();
         ShowWindow(hWnd, SW_SHOW);
     }
     
     void createControls() {
         // Create header text
-        CreateWindow("STATIC", "Insert coordinates in micrometers", 
+        CreateWindowA("STATIC", "Insert coordinates in micrometers", 
             WS_VISIBLE | WS_CHILD | SS_LEFT,
             10, 10, 450, 20, hWnd, NULL, NULL, NULL);
-        CreateWindow("STATIC", "Minimum step size 1 nm", 
+        CreateWindowA("STATIC", "Minimum step size 1 nm", 
             WS_VISIBLE | WS_CHILD | SS_LEFT,
             10, 25, 450, 15, hWnd, NULL, NULL, NULL);
             
         // Labels and input fields with default values - similar layout to tkinter version
-        CreateWindow("STATIC", "X Start:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "X Start:", WS_VISIBLE | WS_CHILD,
             10, 50, 80, 20, hWnd, NULL, NULL, NULL);
-        hXStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hXStart = CreateWindowA("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 48, 100, 22, hWnd, (HMENU)2001, NULL, NULL);
             
-        CreateWindow("STATIC", "X End:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "X End:", WS_VISIBLE | WS_CHILD,
             220, 50, 80, 20, hWnd, NULL, NULL, NULL);
-        hXEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hXEnd = CreateWindowA("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             300, 48, 100, 22, hWnd, (HMENU)2002, NULL, NULL);
             
-        CreateWindow("STATIC", "Y Start:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Y Start:", WS_VISIBLE | WS_CHILD,
             10, 80, 80, 20, hWnd, NULL, NULL, NULL);
-        hYStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hYStart = CreateWindowA("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 78, 100, 22, hWnd, (HMENU)2003, NULL, NULL);
             
-        CreateWindow("STATIC", "Y End:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Y End:", WS_VISIBLE | WS_CHILD,
             220, 80, 80, 20, hWnd, NULL, NULL, NULL);
-        hYEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hYEnd = CreateWindowA("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             300, 78, 100, 22, hWnd, (HMENU)2004, NULL, NULL);
             
-        CreateWindow("STATIC", "Z Start:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Z Start:", WS_VISIBLE | WS_CHILD,
             10, 110, 80, 20, hWnd, NULL, NULL, NULL);
-        hZStart = CreateWindow("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hZStart = CreateWindowA("EDIT", "0.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 108, 100, 22, hWnd, (HMENU)2005, NULL, NULL);
             
-        CreateWindow("STATIC", "Z End:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Z End:", WS_VISIBLE | WS_CHILD,
             220, 110, 80, 20, hWnd, NULL, NULL, NULL);
-        hZEnd = CreateWindow("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hZEnd = CreateWindowA("EDIT", "300.000", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             300, 108, 100, 22, hWnd, (HMENU)2006, NULL, NULL);
             
-        CreateWindow("STATIC", "X Steps:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "X Steps:", WS_VISIBLE | WS_CHILD,
             10, 140, 80, 20, hWnd, NULL, NULL, NULL);
-        hNX = CreateWindow("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNX = CreateWindowA("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 138, 100, 22, hWnd, (HMENU)2007, NULL, NULL);
             
-        CreateWindow("STATIC", "Y Steps:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Y Steps:", WS_VISIBLE | WS_CHILD,
             220, 140, 80, 20, hWnd, NULL, NULL, NULL);
-        hNY = CreateWindow("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNY = CreateWindowA("EDIT", "1", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             300, 138, 100, 22, hWnd, (HMENU)2008, NULL, NULL);
             
-        CreateWindow("STATIC", "Z Steps:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Z Steps:", WS_VISIBLE | WS_CHILD,
             10, 170, 80, 20, hWnd, NULL, NULL, NULL);
-        hNZ = CreateWindow("EDIT", "0", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+        hNZ = CreateWindowA("EDIT", "0", WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
             100, 168, 100, 22, hWnd, (HMENU)2009, NULL, NULL);
             
         // Stepsize display section
-        CreateWindow("STATIC", "X Stepsize:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "X Stepsize:", WS_VISIBLE | WS_CHILD,
             10, 200, 80, 20, hWnd, NULL, NULL, NULL);
-        hXStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+        hXStepsize = CreateWindowA("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
             100, 198, 100, 22, hWnd, NULL, NULL, NULL);
             
-        CreateWindow("STATIC", "Y Stepsize:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Y Stepsize:", WS_VISIBLE | WS_CHILD,
             220, 200, 80, 20, hWnd, NULL, NULL, NULL);
-        hYStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+        hYStepsize = CreateWindowA("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
             300, 198, 100, 22, hWnd, NULL, NULL, NULL);
             
-        CreateWindow("STATIC", "Z Stepsize:", WS_VISIBLE | WS_CHILD,
+        CreateWindowA("STATIC", "Z Stepsize:", WS_VISIBLE | WS_CHILD,
             10, 230, 80, 20, hWnd, NULL, NULL, NULL);
-        hZStepsize = CreateWindow("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
+        hZStepsize = CreateWindowA("STATIC", "N/A", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER,
             100, 228, 100, 22, hWnd, NULL, NULL, NULL);
 
         // Random Scramble Checkbox
-        hScramble = CreateWindow("BUTTON", "Random Scramble Coordinates", 
+        hScramble = CreateWindowA("BUTTON", "Random Scramble Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX | WS_TABSTOP,
             10, 260, 250, 20, hWnd, (HMENU)2010, NULL, NULL);
             
         // Buttons (adjusted position for stepsize display and checkbox)
-        hCreateBtn = CreateWindow("BUTTON", "Create Coordinates", 
+        hCreateBtn = CreateWindowA("BUTTON", "Create Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
             50, 290, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
             
-        hSaveBtn = CreateWindow("BUTTON", "Save to File", 
+        hSaveBtn = CreateWindowA("BUTTON", "Save to File", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
             220, 290, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
         // Status display (multi-line edit control with scrollbar)
-        hStatus = CreateWindow("EDIT", "Ready to create coordinates...", 
+        hStatus = CreateWindowA("EDIT", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
             10, 330, 470, 100, hWnd, NULL, NULL, NULL);
             
@@ -179,9 +179,9 @@ public:
     }
     
     std::string getWindowText(HWND hwnd) {
-        int len = GetWindowTextLength(hwnd);
+        int len = GetWindowTextLengthA(hwnd);
         std::string result(len, '\0');
-        GetWindowText(hwnd, &result[0], len + 1);
+        GetWindowTextA(hwnd, &result[0], len + 1);
         return result;
     }
     
@@ -203,20 +203,20 @@ public:
             
             std::string status = "Successfully created " + 
                 std::to_string(coordCreator.getCoordinateCount()) + " coordinates";
-            SetWindowText(hStatus, status.c_str());
+            SetWindowTextA(hStatus, status.c_str());
             EnableWindow(hSaveBtn, TRUE);
             
             // Update stepsize display
             updateStepsizeDisplay();
             
         } catch (const std::exception& e) {
-            MessageBox(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
-            SetWindowText(hStatus, "Error creating coordinates");
+            MessageBoxA(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
+            SetWindowTextA(hStatus, "Error creating coordinates");
         }
     }
     
     void saveToFile() {
-        OPENFILENAME ofn = {};
+        OPENFILENAMEA ofn = {};
         char fileName[260] = "coordinates.txt";
         
         ofn.lStructSize = sizeof(ofn);
@@ -227,19 +227,19 @@ public:
         ofn.nFilterIndex = 1;
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
         
-        if (GetSaveFileName(&ofn)) {
+        if (GetSaveFileNameA(&ofn)) {
             try {
                 bool scramble = (SendMessage(hScramble, BM_GETCHECK, 0, 0) == BST_CHECKED);
                 coordCreator.writeCoordinates(fileName, scramble);
                 
                 std::string status = "Coordinates saved to: " + std::string(fileName);
                 if (scramble) status += " (Scrambled)";
-                SetWindowText(hStatus, status.c_str());
-                MessageBox(hWnd, ("Coordinates successfully saved to:\n" + 
+                SetWindowTextA(hStatus, status.c_str());
+                MessageBoxA(hWnd, ("Coordinates successfully saved to:\n" + 
                     std::string(fileName)).c_str(), "Success", MB_OK | MB_ICONINFORMATION);
             } catch (const std::exception& e) {
-                MessageBox(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
-                SetWindowText(hStatus, "Error saving coordinates");
+                MessageBoxA(hWnd, e.what(), "Error", MB_OK | MB_ICONERROR);
+                SetWindowTextA(hStatus, "Error saving coordinates");
             }
         }
     }
@@ -302,13 +302,13 @@ public:
                 zStepsizeStr = zStepsizeStr.substr(0, zStepsizeStr.find('.') + 7);
             }
             
-            SetWindowText(hXStepsize, xStepsizeStr.c_str());
-            SetWindowText(hYStepsize, yStepsizeStr.c_str());
-            SetWindowText(hZStepsize, zStepsizeStr.c_str());
+            SetWindowTextA(hXStepsize, xStepsizeStr.c_str());
+            SetWindowTextA(hYStepsize, yStepsizeStr.c_str());
+            SetWindowTextA(hZStepsize, zStepsizeStr.c_str());
         } catch (const std::exception& e) {
-            SetWindowText(hXStepsize, "Error");
-            SetWindowText(hYStepsize, "Error");
-            SetWindowText(hZStepsize, "Error");
+            SetWindowTextA(hXStepsize, "Error");
+            SetWindowTextA(hYStepsize, "Error");
+            SetWindowTextA(hZStepsize, "Error");
         }
     }
     
