@@ -64,6 +64,22 @@ class ScaleBarApp:
         self.fontsize_entry = tk.Entry(self.frame, width=20, textvariable=self.fontsize)
         self.fontsize_entry.pack(side=tk.TOP, padx=(10, 10))
 
+        # separate font size for scalebar
+        self.use_separate_fontsize = tk.BooleanVar()
+        self.use_separate_fontsize.set(False)
+        self.use_separate_fontsize.trace_add("write", self.on_enterscale)
+        self.separate_fontsize_checkbox = tk.Checkbutton(self.frame, text="bar: use seperate fontsize", variable=self.use_separate_fontsize)
+        self.separate_fontsize_checkbox.pack(side=tk.TOP, padx=(10, 10))
+
+        self.fontsize_scalebar_label = tk.Label(self.frame, text="Font Size scalebar:")
+        self.fontsize_scalebar_label.pack(side=tk.TOP, padx=(10, 10))
+
+        self.fontsize_scalebar = tk.IntVar()
+        self.fontsize_scalebar.set(20)
+        self.fontsize_scalebar.trace_add("write", self.on_enterscale)
+        self.fontsize_scalebar_entry = tk.Entry(self.frame, width=20, textvariable=self.fontsize_scalebar)
+        self.fontsize_scalebar_entry.pack(side=tk.TOP, padx=(10, 10))
+
         # add spacing between scale bar and save button
         self.spacing = tk.Label(self.frame, text="")
         self.spacing.pack(side=tk.TOP, padx=(10, 10))
@@ -91,10 +107,13 @@ class ScaleBarApp:
             self.tk_image = ImageTk.PhotoImage(self.image)
             #self.canvas.config(width=self.image.width, height=self.image.height)
             # set size of canvas to fill the window
-            self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
+            self.canvas_image_id = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image, tags="image_tag")
             self.canvas.config(width=self.root.winfo_screenwidth(), height=self.root.winfo_screenheight())
             # set canvas to expand with window
             self.canvas.pack(fill=tk.BOTH, expand=True)
+
+            # Bind click on image to move scale bar
+            self.canvas.tag_bind("image_tag", "<ButtonPress-1>", self.on_image_click)
 
             # Create vertical and horizontal scrollbars
             self.v_scrollbar = tk.Scrollbar(self.canvas, orient=tk.VERTICAL, command=self.canvas.yview)
@@ -118,7 +137,8 @@ class ScaleBarApp:
         self.bar_length_mum = self.scalelength.get()
         self.bar_height_mum = 1
         self.bar_length = self.bar_length_mum/self.scalepixels
-        self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05  # Assuming the height is related to the font size
+        current_font_size = self.fontsize_scalebar.get() if self.use_separate_fontsize.get() else self.fontsize.get()
+        self.bar_height = self.bar_height_mum/self.scalepixels * current_font_size * 0.05  # Assuming the height is related to the font size
         self.text = f"{self.bar_length_mum} µm"
         
         # Default position of the scale bar
@@ -139,10 +159,10 @@ class ScaleBarApp:
         if self.image:
             self.bar_length_mum = self.scalelength.get()
             self.bar_length = self.bar_length_mum/self.scalepixels
+            current_font_size = self.fontsize_scalebar.get() if self.use_separate_fontsize.get() else self.fontsize.get()
             # update the hight of the scale bar
-            self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05
              # Update the height of the scale bar
-            self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05  # Assuming the height is related to the font size
+            self.bar_height = self.bar_height_mum/self.scalepixels * current_font_size * 0.05  # Assuming the height is related to the font size
             self.canvas.coords(self.bar, self.bar_x, self.bar_y, self.bar_x + self.bar_length, self.bar_y + self.bar_height)
             # Update the text below the scale bar
             self.text = f"{self.bar_length_mum} µm"
@@ -160,6 +180,25 @@ class ScaleBarApp:
         # Record the initial position of the mouse
         self.start_x = event.x
         self.start_y = event.y
+
+    def on_image_click(self, event):
+        if not hasattr(self, 'bar') or not self.bar:
+            return
+        
+        # Calculate cursor position mapping to canvas items
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        
+        dx = canvas_x - self.bar_x
+        dy = canvas_y - self.bar_y
+        
+        # Move the scale bar and text
+        self.canvas.move(self.bar, dx, dy)
+        self.canvas.move(self.text_id, dx, dy)
+        
+        # Update bar position
+        coords = self.canvas.coords(self.bar)
+        self.bar_x, self.bar_y = coords[0], coords[1]
 
     def on_drag(self, event):
         # Calculate new position
@@ -197,6 +236,7 @@ class ScaleBarApp:
         
         # Draw the text below the scale bar
         # Create a font object with the desired size
+        current_font_size = self.fontsize_scalebar.get() if self.use_separate_fontsize.get() else self.fontsize.get()
         font = ImageFont.truetype("arial.ttf", self.fontsize.get())
         draw.text((self.bar_x, self.bar_y + self.bar_height + 5), self.text, fill="white", font=font)
         # Save the image with "_saved" in the filename
