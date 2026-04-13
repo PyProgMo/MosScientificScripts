@@ -6,11 +6,14 @@
 
 class AutoStageCoordCreator {
 public:
+    enum class ScanDirection { SCAN_X = 0, SCAN_Y = 1, SCAN_Z = 2 };
+
     AutoStageCoordCreator(double xmin = 0, double xmax = 300, 
                          double ymin = 0, double ymax = 300, 
                          double zmin = 0, double zmax = 300);
     
     void setRounding(int x_round = 3, int y_round = 3, int z_round = 3);
+    void setScanDirection(ScanDirection dir) { scanDirection = dir; }
     void createCoordinates(const std::vector<double>& params);
     void writeCoordinates(const std::string& filename, bool scramble = false);
     void clearCoordinates();
@@ -19,6 +22,7 @@ public:
     const std::vector<std::tuple<double, double, double>>& getCoordinates() const { return coordinates; }
     
 private:
+    ScanDirection scanDirection = ScanDirection::SCAN_X;
     double xmin, xmax, ymin, ymax, zmin, zmax;
     int roundx, roundy, roundz;
     std::vector<std::tuple<double, double, double>> coordinates;

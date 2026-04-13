@@ -146,8 +146,23 @@ void AutoStageGUI::createWidgets() {
         grid .main.input.z_stepsize -row 7 -column 1 -padx 2 -pady 2
         
         # Random Scramble Checkbox
-        checkbutton .main.input.chk_scramble -text "Random Scramble Coordinates" -variable scramble_var
+        set scramble_var 0
+        checkbutton .main.input.chk_scramble -text "Random Scramble Coordinates" -variable scramble_var -font {Arial 10 bold}
         grid .main.input.chk_scramble -row 8 -column 0 -columnspan 4 -sticky w -padx 2 -pady 5
+
+        # Scan Direction Radio Buttons
+        set scan_dir_var "X"
+        label .main.input.lbl_scan_dir -text "Scan Direction:" -font {Arial 10 bold}
+        frame .main.input.scan_dir_frame
+        radiobutton .main.input.scan_dir_frame.rb_x -text "X" -variable scan_dir_var -value "X"
+        radiobutton .main.input.scan_dir_frame.rb_y -text "Y" -variable scan_dir_var -value "Y"
+        radiobutton .main.input.scan_dir_frame.rb_z -text "Z" -variable scan_dir_var -value "Z"
+        
+        grid .main.input.lbl_scan_dir -row 9 -column 0 -sticky w -padx 2 -pady 5
+        grid .main.input.scan_dir_frame -row 9 -column 1 -columnspan 3 -sticky w -padx 2
+        pack .main.input.scan_dir_frame.rb_x -side left -padx 5
+        pack .main.input.scan_dir_frame.rb_y -side left -padx 5
+        pack .main.input.scan_dir_frame.rb_z -side left -padx 5
         
         # Set up tab order for keyboard navigation
         # Tab order: x_start -> x_end -> y_start -> y_end -> z_start -> z_end -> nx -> ny -> nz
@@ -272,6 +287,16 @@ int AutoStageGUI::createCoordinatesCallback(ClientData clientData, Tcl_Interp *i
         std::cout << "Y: " << params[1] << " to " << params[4] << " (" << params[7] << " steps)" << std::endl;
         std::cout << "Z: " << params[2] << " to " << params[5] << " (" << params[8] << " steps)" << std::endl;
         
+        // Get scan direction from UI
+        const char* scanDirVar = Tcl_GetVar(interp, "scan_dir_var", TCL_GLOBAL_ONLY);
+        if (std::string(scanDirVar) == "Y") {
+            gui->coordCreator->setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_Y);
+        } else if (std::string(scanDirVar) == "Z") {
+            gui->coordCreator->setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_Z);
+        } else {
+            gui->coordCreator->setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_X);
+        }
+
         gui->coordCreator->createCoordinates(params);
         
         // Update status

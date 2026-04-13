@@ -84,11 +84,29 @@ void AutoStageCoordCreator::createCoordinates(const std::vector<double>& params)
     // Clear previous coordinates
     coordinates.clear();
     
-    // Generate all coordinate combinations
-    for (double x : x_coords) {
+    // Generate all coordinate combinations based on scan direction
+    if (scanDirection == ScanDirection::SCAN_X) {
         for (double y : y_coords) {
             for (double z : z_coords) {
-                coordinates.emplace_back(x, y, z);
+                for (double x : x_coords) {
+                    coordinates.emplace_back(x, y, z);
+                }
+            }
+        }
+    } else if (scanDirection == ScanDirection::SCAN_Y) {
+        for (double x : x_coords) {
+            for (double z : z_coords) {
+                for (double y : y_coords) {
+                    coordinates.emplace_back(x, y, z);
+                }
+            }
+        }
+    } else { // default SCAN_Z
+        for (double x : x_coords) {
+            for (double y : y_coords) {
+                for (double z : z_coords) {
+                    coordinates.emplace_back(x, y, z);
+                }
             }
         }
     }

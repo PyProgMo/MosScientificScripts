@@ -17,6 +17,7 @@ private:
     HWND hNX, hNY, hNZ, hCreateBtn, hSaveBtn, hStatus;
     HWND hXStepsize, hYStepsize, hZStepsize; // Stepsize display controls
     HWND hScramble; // Random Scramble Checkbox
+    HWND hScanX, hScanY, hScanZ; // Scan direction radio buttons
     AutoStageCoordCreator coordCreator;
     std::vector<HWND> tabOrder; // For tab navigation
     
@@ -155,24 +156,38 @@ public:
         hScramble = CreateWindowA("BUTTON", "Random Scramble Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX | WS_TABSTOP,
             10, 260, 250, 20, hWnd, (HMENU)2010, NULL, NULL);
+
+        // Scan Direction Radio Buttons
+        CreateWindowA("STATIC", "Scan Direction:", WS_VISIBLE | WS_CHILD,
+            10, 290, 100, 20, hWnd, NULL, NULL, NULL);
+        hScanX = CreateWindowA("BUTTON", "X", 
+            WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_TABSTOP,
+            120, 290, 40, 20, hWnd, (HMENU)2011, NULL, NULL);
+        hScanY = CreateWindowA("BUTTON", "Y", 
+            WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_TABSTOP,
+            170, 290, 40, 20, hWnd, (HMENU)2012, NULL, NULL);
+        hScanZ = CreateWindowA("BUTTON", "Z", 
+            WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_TABSTOP,
+            220, 290, 40, 20, hWnd, (HMENU)2013, NULL, NULL);
+        SendMessage(hScanX, BM_SETCHECK, BST_CHECKED, 0); // Default to X
             
         // Buttons (adjusted position for stepsize display and checkbox)
         hCreateBtn = CreateWindowA("BUTTON", "Create Coordinates", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            50, 290, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
+            50, 320, 150, 30, hWnd, (HMENU)1001, NULL, NULL);
             
         hSaveBtn = CreateWindowA("BUTTON", "Save to File", 
             WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | WS_TABSTOP,
-            220, 290, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
+            220, 320, 150, 30, hWnd, (HMENU)1002, NULL, NULL);
         EnableWindow(hSaveBtn, FALSE);
             
         // Status display (multi-line edit control with scrollbar)
         hStatus = CreateWindowA("EDIT", "Ready to create coordinates...", 
             WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-            10, 330, 470, 100, hWnd, NULL, NULL, NULL);
+            10, 360, 470, 100, hWnd, NULL, NULL, NULL);
             
-        // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Scramble -> Create -> Save
-        tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hScramble, hCreateBtn, hSaveBtn};
+        // Set up tab order: X Start -> X End -> Y Start -> Y End -> Z Start -> Z End -> X Steps -> Y Steps -> Z Steps -> Scramble -> ScanX -> ScanY -> ScanZ -> Create -> Save
+        tabOrder = {hXStart, hXEnd, hYStart, hYEnd, hZStart, hZEnd, hNX, hNY, hNZ, hScramble, hScanX, hScanY, hScanZ, hCreateBtn, hSaveBtn};
         
         // Set initial focus to first input field
         SetFocus(hXStart);
@@ -199,6 +214,14 @@ public:
                 std::stod(getWindowText(hNZ))
             };
             
+            if (SendMessage(hScanX, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                coordCreator.setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_X);
+            } else if (SendMessage(hScanY, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                coordCreator.setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_Y);
+            } else {
+                coordCreator.setScanDirection(AutoStageCoordCreator::ScanDirection::SCAN_Z);
+            }
+
             coordCreator.createCoordinates(params);
             
             std::string status = "Successfully created " + 
