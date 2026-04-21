@@ -60,6 +60,8 @@ class PlottingTool:
         self.root = root
         self.root.title("Plotting Tool")
         
+        self.is_table_mode = False
+        
         # File selection for multiple files
         self.file_label = tk.Label(root, text="Selected Files: None")
         self.file_label.pack()
@@ -69,6 +71,9 @@ class PlottingTool:
 
         self.select_files_button = tk.Button(file_buttons_frame, text="Select Files", command=self.select_files)
         self.select_files_button.pack(side=tk.LEFT)
+        
+        self.select_table_button = tk.Button(file_buttons_frame, text="Select Table", command=self.select_table)
+        self.select_table_button.pack(side=tk.LEFT)
 
         self.clear_files_button = tk.Button(file_buttons_frame, text="Clear Files", command=self.clear_files)
         self.clear_files_button.pack(side=tk.LEFT)
