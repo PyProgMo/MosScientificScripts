@@ -61,6 +61,10 @@ class PlottingTool:
         self.root.title("Plotting Tool")
         
         self.is_table_mode = False
+        self.table_file = None  # Store the selected table file
+        self.table_delimiter = None
+        self.table_columns = []  # Store selected column pairs: [(x_col, y_col), ...]
+        self.column_headers = []  # Store column headers from table
         
         # File selection for multiple files
         self.file_label = tk.Label(root, text="Selected Files: None")
@@ -74,6 +78,10 @@ class PlottingTool:
         
         self.select_table_button = tk.Button(file_buttons_frame, text="Select Table", command=self.select_table)
         self.select_table_button.pack(side=tk.LEFT)
+
+        self.auto_plot_1st_col = tk.BooleanVar(value=False)
+        self.auto_plot_check = tk.Checkbutton(file_buttons_frame, text="1st vs All", variable=self.auto_plot_1st_col)
+        self.auto_plot_check.pack(side=tk.LEFT)
 
         self.clear_files_button = tk.Button(file_buttons_frame, text="Clear Files", command=self.clear_files)
         self.clear_files_button.pack(side=tk.LEFT)
@@ -254,7 +262,8 @@ class PlottingTool:
         frame = tk.Frame(self.line_properties_frame)
         frame.pack(anchor="w", pady=2)
 
-        tk.Label(frame, text=f"File {index + 1}: {os.path.basename(self.filenames[index])}").pack(side=tk.TOP, anchor="w")
+        display_name = line_properties['legend_label'].get() if self.is_table_mode else os.path.basename(self.filenames[index])
+        tk.Label(frame, text=f"Plot {index + 1}: {display_name}").pack(side=tk.TOP, anchor="w")
 
         tk.Label(frame, text="Line Thickness:").pack(side=tk.LEFT)
         tk.Entry(frame, textvariable=line_properties['line_thickness']).pack(side=tk.LEFT)
@@ -323,45 +332,260 @@ class PlottingTool:
             for i, line in enumerate(file):
                 # Try to parse the line as numerical data
                 try:
-                    float(line.split()[0])  # Check if the first column is a number
+                    clean_line = line.replace(',', ' ').replace(';', ' ')
+                    if not clean_line.strip() or clean_line.startswith('#'):
+                        continue
+                    float(clean_line.split()[0])  # Check if the first column is a number
                     return i  # Return the line number where data starts
                 except (ValueError, IndexError):
                     continue
         raise ValueError(f"No numerical data found in file: {filename}")
 
+    def get_delimiter(self, filename):
+        """Detect the delimiter used in the data."""
+        try:
+            data_start = self.detect_data_start(filename)
+            with open(filename, 'r') as f:
+                for _ in range(data_start):
+                    f.readline()
+                line = f.readline()
+                if ',' in line: return ','
+                if ';' in line: return ';'
+                if '\t' in line: return '\t'
+        except:
+            pass
+        return None
+
     def auto_scale_x_min(self):
-        if self.filenames:
-            x_data = [
-                np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=0)
-                for file in self.filenames
-            ]
-            self.x_min.set(np.floor(min([min(x) for x in x_data if len(x) > 0]) / self.x_tick.get()) * self.x_tick.get())
+        if not self.filenames and not self.is_table_mode:
+            return
+        
+        try:
+            if self.is_table_mode:
+                # Load from table file
+                data_start = self.detect_data_start(self.table_file)
+                all_x_data = []
+                for x_col, y_col in self.table_columns:
+                    x_data = np.loadtxt(
+                        self.table_file, unpack=True, skiprows=data_start, usecols=x_col, delimiter=self.table_delimiter
+                    )
+                    all_x_data.extend(x_data if x_data.ndim > 0 else [x_data])
+                x_data = np.array(all_x_data)
+            else:
+                # Load from multiple files
+                x_data = [
+                    np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=0, delimiter=self.get_delimiter(file))
+                    for file in self.filenames
+                ]
+                x_data = np.concatenate(x_data)
+            
+            self.x_min.set(np.floor(min(x_data) / self.x_tick.get()) * self.x_tick.get())
+        except Exception as e:
+            print(f"Error in auto_scale_x_min: {e}")
     
     def auto_scale_x_max(self):
-        if self.filenames:
-            x_data = [
-                np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=0)
-                for file in self.filenames
-            ]
-            self.x_max.set(np.ceil(max([max(x) for x in x_data if len(x) > 0]) / self.x_tick.get()) * self.x_tick.get())
+        if not self.filenames and not self.is_table_mode:
+            return
+        
+        try:
+            if self.is_table_mode:
+                data_start = self.detect_data_start(self.table_file)
+                all_x_data = []
+                for x_col, y_col in self.table_columns:
+                    x_data = np.loadtxt(
+                        self.table_file, unpack=True, skiprows=data_start, usecols=x_col, delimiter=self.table_delimiter
+                    )
+                    all_x_data.extend(x_data if x_data.ndim > 0 else [x_data])
+                x_data = np.array(all_x_data)
+            else:
+                x_data = [
+                    np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=0, delimiter=self.get_delimiter(file))
+                    for file in self.filenames
+                ]
+                x_data = np.concatenate(x_data)
+            
+            self.x_max.set(np.ceil(max(x_data) / self.x_tick.get()) * self.x_tick.get())
+        except Exception as e:
+            print(f"Error in auto_scale_x_max: {e}")
     
     def auto_scale_y_min(self):
-        if self.filenames:
-            y_data = [
-                np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=1)
-                for file in self.filenames
-            ]
-            self.y_min.set(np.floor(min([min(y) for y in y_data if len(y) > 0]) / self.y_tick.get()) * self.y_tick.get())
+        if not self.filenames and not self.is_table_mode:
+            return
+        
+        try:
+            if self.is_table_mode:
+                data_start = self.detect_data_start(self.table_file)
+                all_y_data = []
+                for x_col, y_col in self.table_columns:
+                    y_data = np.loadtxt(
+                        self.table_file, unpack=True, skiprows=data_start, usecols=y_col, delimiter=self.table_delimiter
+                    )
+                    all_y_data.extend(y_data if y_data.ndim > 0 else [y_data])
+                y_data = np.array(all_y_data)
+            else:
+                y_data = [
+                    np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=1, delimiter=self.get_delimiter(file))
+                    for file in self.filenames
+                ]
+                y_data = np.concatenate(y_data)
+            
+            self.y_min.set(np.floor(min(y_data) / self.y_tick.get()) * self.y_tick.get())
+        except Exception as e:
+            print(f"Error in auto_scale_y_min: {e}")
     
     def auto_scale_y_max(self):
-        if self.filenames:
-            y_data = [
-                np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=1)
-                for file in self.filenames
-            ]
-            self.y_max.set(np.ceil(max([max(y) for y in y_data if len(y) > 0]) / self.y_tick.get()) * self.y_tick.get())
+        if not self.filenames and not self.is_table_mode:
+            return
+        
+        try:
+            if self.is_table_mode:
+                data_start = self.detect_data_start(self.table_file)
+                all_y_data = []
+                for x_col, y_col in self.table_columns:
+                    y_data = np.loadtxt(
+                        self.table_file, unpack=True, skiprows=data_start, usecols=y_col, delimiter=self.table_delimiter
+                    )
+                    all_y_data.extend(y_data if y_data.ndim > 0 else [y_data])
+                y_data = np.array(all_y_data)
+            else:
+                y_data = [
+                    np.loadtxt(file, unpack=True, skiprows=self.detect_data_start(file), usecols=1, delimiter=self.get_delimiter(file))
+                    for file in self.filenames
+                ]
+                y_data = np.concatenate(y_data)
+            
+            self.y_max.set(np.ceil(max(y_data) / self.y_tick.get()) * self.y_tick.get())
+        except Exception as e:
+            print(f"Error in auto_scale_y_max: {e}")
     
+    def select_table(self):
+        """Select a table file and configure columns for plotting."""
+        table_file = filedialog.askopenfilename(
+            filetypes=[("Text files", "*.txt"), ("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        
+        if not table_file:
+            return
+        
+        try:
+            # Detect data start
+            data_start = self.detect_data_start(table_file)
+            delimiter = self.get_delimiter(table_file)
+            self.table_delimiter = delimiter
+            
+            # Read header if available
+            with open(table_file, 'r') as f:
+                lines = [f.readline().strip() for _ in range(data_start)]
+            
+            header_line = lines[-1] if lines else ""
+            if header_line.startswith('#'):
+                header_line = header_line[1:].strip()
+            
+            # Try to parse headers, otherwise generate generic names
+            header_clean = header_line.replace(',', '').replace('\t', '').replace(' ', '')
+            if header_line and not all(c.isdigit() or c in '.-+e' for c in header_clean):
+                split_char = delimiter if delimiter else '\t'
+                self.column_headers = [h.strip() if h.strip() else f"Column {idx+1}" for idx, h in enumerate(header_line.split(split_char))]
+            else:
+                # If no valid header, read a line of data to count columns
+                data = np.loadtxt(table_file, unpack=True, skiprows=data_start, max_rows=1, delimiter=delimiter)
+                if data.ndim == 0:
+                    num_cols = 1
+                else:
+                    num_cols = len(data) if data.ndim > 0 else 1
+                self.column_headers = [f"Column {i+1}" for i in range(num_cols)]
+            
+            # Set table mode
+            self.is_table_mode = True
+            self.table_file = table_file
+            
+            if self.auto_plot_1st_col.get():
+                num_cols = len(self.column_headers)
+                if num_cols > 1:
+                    self.table_columns = [(0, i) for i in range(1, num_cols)]
+                    self._apply_table_columns_and_update_ui()
+                else:
+                    print("Table has only one column.")
+            else:
+                # Open column selection dialog
+                self.open_column_selection_dialog()
+            
+        except Exception as e:
+            print(f"Error reading table file: {e}")
+
+    def open_column_selection_dialog(self):
+        """Open a dialog to select column pairs for plotting."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Select Columns to Plot")
+        dialog.geometry("500x400")
+        
+        tk.Label(dialog, text="Select column pairs (X, Y) to plot:", font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Create a frame with checkboxes for each possible column pair
+        frame = tk.Frame(dialog)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        canvas = tk.Canvas(frame, yscrollcommand=scrollbar.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=canvas.yview)
+        
+        inner_frame = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+        
+        column_selection = {}
+        num_cols = len(self.column_headers)
+        
+        # Create checkboxes for all possible column pair combinations
+        for i in range(num_cols):
+            for j in range(i + 1, num_cols):
+                var = tk.BooleanVar(value=False)
+                col_pair_name = f"{self.column_headers[i]} (X) vs {self.column_headers[j]} (Y)"
+                tk.Checkbutton(inner_frame, text=col_pair_name, variable=var).pack(anchor=tk.W)
+                column_selection[(i, j)] = var
+        
+        inner_frame.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+        
+        def apply_selection():
+            self.table_columns = [(i, j) for (i, j), var in column_selection.items() if var.get()]
+            self._apply_table_columns_and_update_ui()
+            dialog.destroy()
+        
+        tk.Button(dialog, text="Apply", command=apply_selection, bg="green", fg="white").pack(pady=10)
+
+    def _apply_table_columns_and_update_ui(self):
+        if not self.table_columns:
+            print("No columns selected.")
+            return
+        
+        # Create line properties for each selected column pair
+        self.line_properties.clear()
+        for widget in self.line_properties_frame.winfo_children():
+            widget.destroy()
+        
+        for idx, (x_col, y_col) in enumerate(self.table_columns):
+            self.add_line_property_set(
+                filename=f"{self.column_headers[x_col]} vs {self.column_headers[y_col]}"
+            )
+        
+        # Update file label
+        self.file_label.config(
+            text=f"Selected Table: {os.path.basename(self.table_file)} ({len(self.table_columns)} plots)"
+        )
+        
+        # Set default file name
+        default_file_name = os.path.splitext(os.path.basename(self.table_file))[0]
+        self.file_name.set(default_file_name)
+
     def select_files(self):
+        # Reset table mode if switching to file mode
+        self.is_table_mode = False
+        self.table_file = None
+        self.table_columns = []
+        
         self.filenames = filedialog.askopenfilenames()
         self.file_label.config(text=f"Selected Files: {', '.join(self.filenames)}")
         
@@ -387,8 +611,12 @@ class PlottingTool:
             self.create_line_property_frame(i, line_props)
 
     def clear_files(self):
-        """Clear the selected files and reset related UI elements."""
+        """Clear the selected files/table and reset related UI elements."""
         self.filenames = []
+        self.table_file = None
+        self.table_columns = []
+        self.column_headers = []
+        self.is_table_mode = False
         self.file_label.config(text="Selected Files: None")
         self.line_properties.clear()
         for widget in self.line_properties_frame.winfo_children():
@@ -409,89 +637,176 @@ class PlottingTool:
             self.fit_equation.set("Fit Equation: N/A")
 
     def plot(self, delimiter="\t"):
-        if not self.filenames:
-            print("No files selected.")
+        if not self.filenames and not self.is_table_mode:
+            print("No files or table selected.")
             return
         
         plt.figure(figsize=(10, 6))
         
-        # Plot each selected file with corresponding line properties
-        for i, filename in enumerate(self.filenames):
-            data_start = self.detect_data_start(filename)
-            data = np.loadtxt(filename, unpack=True, skiprows=data_start, delimiter=delimiter)
-            if data.ndim < 2 or data.shape[0] < 2:
-                print(f"Skipping file {filename}: insufficient data.")
-                continue
-            data_x, data_y = data[0], data[1]
-
-            # Convert wavelength to energy in eV if checkbox is selected
-            if self.use_nm2eV.get():
-                data_x = self.nm2eV(data_x)
-                self.x_label.set("Energy (eV)")
+        if self.is_table_mode:
+            # Plot data from table file
+            data_start = self.detect_data_start(self.table_file)
             
-            # Normalize data by point if checkbox is selected
-            if self.normalize_data.get():
-                normalize_point = self.line_properties[i]['normalize_point'].get()
-                closest_index = (np.abs(data_x - normalize_point)).argmin()
-                data_y = data_y / data_y[closest_index]
-            
-            # Normalize data by maximum if checkbox is selected
-            if self.normalize_max.get():
-                data_y = data_y / np.max(data_y)
-            
-            # Get line properties for the current graph
-            line_props = self.line_properties[i]
-            if line_props['plot_as_points'].get():
-                # Plot as points
-                plt.scatter(data_x, data_y, 
-                            color=line_props['line_color'].get(), 
-                            s=line_props['point_size'].get(), 
-                            label=line_props['legend_label'].get())
-            else:
-                # Plot as a line
-                plt.plot(data_x, data_y, 
-                         color=line_props['line_color'].get(), 
-                         linewidth=line_props['line_thickness'].get(), 
-                         linestyle=line_props['style_map'][line_props['line_style'].get()],  # Map key to value
-                         label=line_props['legend_label'].get())
-                
-            # Perform fitting if enabled
-            if line_props['fit_enabled'].get():
-                fit_type = line_props['fit_type'].get()
-                if fit_type == "Linear":
-                    coeffs = np.polyfit(data_x, data_y, 1)
-                    fit_func = np.poly1d(coeffs)
-                    line_props['fit_equation'].set(f"Fit Equation: y = {coeffs[0]:.4f}x + {coeffs[1]:.4f}")
-                elif fit_type.startswith("Polynomial"):
-                    degree = int(fit_type.split("^")[1][0])  # Extract the degree from the dropdown text
-                    coeffs = np.polyfit(data_x, data_y, degree)
-                    fit_func = np.poly1d(coeffs)
-                    equation_terms = [f"{coeff:.4f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
-                    line_props['fit_equation'].set(f"Fit Equation: y = {' + '.join(equation_terms)}")
-                elif fit_type == "Exponential":
-                    # Filter out invalid data_y values
-                    valid_indices = data_y > 0
-                    if not np.any(valid_indices):
-                        print("Exponential fit failed: No valid data points.")
+            for plot_idx, (x_col, y_col) in enumerate(self.table_columns):
+                try:
+                    data = np.loadtxt(
+                        self.table_file, unpack=True, skiprows=data_start, 
+                        usecols=(x_col, y_col), delimiter=self.table_delimiter
+                    )
+                    
+                    if data.ndim < 2 or data.shape[0] < 2:
+                        print(f"Skipping columns {x_col}, {y_col}: insufficient data.")
                         continue
+                    
+                    data_x, data_y = data[0], data[1]
+                    
+                    # Convert wavelength to energy in eV if checkbox is selected
+                    if self.use_nm2eV.get():
+                        data_x = self.nm2eV(data_x)
+                        self.x_label.set("Energy (eV)")
+                    
+                    # Normalize data by point if checkbox is selected
+                    if self.normalize_data.get():
+                        normalize_point = self.line_properties[plot_idx]['normalize_point'].get()
+                        closest_index = (np.abs(data_x - normalize_point)).argmin()
+                        data_y = data_y / data_y[closest_index]
+                    
+                    # Normalize data by maximum if checkbox is selected
+                    if self.normalize_max.get():
+                        data_y = data_y / np.max(data_y)
+                    
+                    # Get line properties
+                    line_props = self.line_properties[plot_idx]
+                    
+                    if line_props['plot_as_points'].get():
+                        plt.scatter(data_x, data_y, 
+                                    color=line_props['line_color'].get(), 
+                                    s=line_props['point_size'].get(), 
+                                    label=line_props['legend_label'].get())
+                    else:
+                        plt.plot(data_x, data_y, 
+                                 color=line_props['line_color'].get(), 
+                                 linewidth=line_props['line_thickness'].get(), 
+                                 linestyle=line_props['style_map'][line_props['line_style'].get()],
+                                 label=line_props['legend_label'].get())
+                    
+                    # Perform fitting if enabled
+                    if line_props['fit_enabled'].get():
+                        fit_type = line_props['fit_type'].get()
+                        if fit_type == "Linear":
+                            coeffs = np.polyfit(data_x, data_y, 1)
+                            fit_func = np.poly1d(coeffs)
+                            line_props['fit_equation'].set(f"Fit Equation: y = {coeffs[0]:.4f}x + {coeffs[1]:.4f}")
+                        elif fit_type.startswith("Polynomial"):
+                            degree = int(fit_type.split("^")[1][0])
+                            coeffs = np.polyfit(data_x, data_y, degree)
+                            fit_func = np.poly1d(coeffs)
+                            equation_terms = [f"{coeff:.4f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
+                            line_props['fit_equation'].set(f"Fit Equation: y = {' + '.join(equation_terms)}")
+                        elif fit_type == "Exponential":
+                            valid_indices = data_y > 0
+                            if not np.any(valid_indices):
+                                print("Exponential fit failed: No valid data points.")
+                                continue
+                            
+                            filtered_x = data_x[valid_indices]
+                            filtered_y = data_y[valid_indices]
+                            log_y = np.log(filtered_y)
+                            coeffs = np.polyfit(filtered_x, log_y, 1)
+                            fit_func = lambda x: np.exp(coeffs[1]) * np.exp(coeffs[0] * x)
+                            line_props['fit_equation'].set(f"Fit Equation: y = {np.exp(coeffs[1]):.4f}e^({coeffs[0]:.4f}x)")
+                        
+                        fit_x = np.linspace(self.x_min.get(), self.x_max.get(), 500)
+                        fit_y = fit_func(fit_x)
+                        plt.plot(fit_x, fit_y, 
+                                 linestyle=self.fit_line_styles[line_props['fit_line_style'].get()], 
+                                 color=line_props['fit_line_color'].get(), 
+                                 linewidth=line_props['fit_line_thickness'].get(), 
+                                 label=line_props['fit_legend_label'].get())
+                    
+                except Exception as e:
+                    print(f"Error plotting columns {x_col}, {y_col}: {e}")
+        
+        else:
+            # Plot data from multiple files (original behavior)
+            # Plot each selected file with corresponding line properties
+            for i, filename in enumerate(self.filenames):
+                data_start = self.detect_data_start(filename)
+                file_delimiter = self.get_delimiter(filename)
+                data = np.loadtxt(filename, unpack=True, skiprows=data_start, delimiter=file_delimiter)
+                if data.ndim < 2 or data.shape[0] < 2:
+                    print(f"Skipping file {filename}: insufficient data.")
+                    continue
+                data_x, data_y = data[0], data[1]
 
-                    filtered_x = data_x[valid_indices]
-                    filtered_y = data_y[valid_indices]
+                # Convert wavelength to energy in eV if checkbox is selected
+                if self.use_nm2eV.get():
+                    data_x = self.nm2eV(data_x)
+                    self.x_label.set("Energy (eV)")
+                
+                # Normalize data by point if checkbox is selected
+                if self.normalize_data.get():
+                    normalize_point = self.line_properties[i]['normalize_point'].get()
+                    closest_index = (np.abs(data_x - normalize_point)).argmin()
+                    data_y = data_y / data_y[closest_index]
+                
+                # Normalize data by maximum if checkbox is selected
+                if self.normalize_max.get():
+                    data_y = data_y / np.max(data_y)
+                
+                # Get line properties for the current graph
+                line_props = self.line_properties[i]
+                if line_props['plot_as_points'].get():
+                    # Plot as points
+                    plt.scatter(data_x, data_y, 
+                                color=line_props['line_color'].get(), 
+                                s=line_props['point_size'].get(), 
+                                label=line_props['legend_label'].get())
+                else:
+                    # Plot as a line
+                    plt.plot(data_x, data_y, 
+                             color=line_props['line_color'].get(), 
+                             linewidth=line_props['line_thickness'].get(), 
+                             linestyle=line_props['style_map'][line_props['line_style'].get()],  # Map key to value
+                             label=line_props['legend_label'].get())
+                    
+                # Perform fitting if enabled
+                if line_props['fit_enabled'].get():
+                    fit_type = line_props['fit_type'].get()
+                    if fit_type == "Linear":
+                        coeffs = np.polyfit(data_x, data_y, 1)
+                        fit_func = np.poly1d(coeffs)
+                        line_props['fit_equation'].set(f"Fit Equation: y = {coeffs[0]:.4f}x + {coeffs[1]:.4f}")
+                    elif fit_type.startswith("Polynomial"):
+                        degree = int(fit_type.split("^")[1][0])  # Extract the degree from the dropdown text
+                        coeffs = np.polyfit(data_x, data_y, degree)
+                        fit_func = np.poly1d(coeffs)
+                        equation_terms = [f"{coeff:.4f}x^{i}" for i, coeff in enumerate(reversed(coeffs))]
+                        line_props['fit_equation'].set(f"Fit Equation: y = {' + '.join(equation_terms)}")
+                    elif fit_type == "Exponential":
+                        # Filter out invalid data_y values
+                        valid_indices = data_y > 0
+                        if not np.any(valid_indices):
+                            print("Exponential fit failed: No valid data points.")
+                            continue
 
-                    # Perform logarithmic transformation and fit
-                    log_y = np.log(filtered_y)
-                    coeffs = np.polyfit(filtered_x, log_y, 1)
-                    fit_func = lambda x: np.exp(coeffs[1]) * np.exp(coeffs[0] * x)
-                    line_props['fit_equation'].set(f"Fit Equation: y = {np.exp(coeffs[1]):.4f}e^({coeffs[0]:.4f}x)")
+                        filtered_x = data_x[valid_indices]
+                        filtered_y = data_y[valid_indices]
 
-                # Plot the fit function with user-defined style, color, thickness, and legend label
-                fit_x = np.linspace(self.x_min.get(), self.x_max.get(), 500)
-                fit_y = fit_func(fit_x)
-                plt.plot(fit_x, fit_y, 
-                         linestyle=self.fit_line_styles[line_props['fit_line_style'].get()], 
-                         color=line_props['fit_line_color'].get(), 
-                         linewidth=line_props['fit_line_thickness'].get(), 
-                         label=line_props['fit_legend_label'].get())
+                        # Perform logarithmic transformation and fit
+                        log_y = np.log(filtered_y)
+                        coeffs = np.polyfit(filtered_x, log_y, 1)
+                        fit_func = lambda x: np.exp(coeffs[1]) * np.exp(coeffs[0] * x)
+                        line_props['fit_equation'].set(f"Fit Equation: y = {np.exp(coeffs[1]):.4f}e^({coeffs[0]:.4f}x)")
+
+                    # Plot the fit function with user-defined style, color, thickness, and legend label
+                    fit_x = np.linspace(self.x_min.get(), self.x_max.get(), 500)
+                    fit_y = fit_func(fit_x)
+                    plt.plot(fit_x, fit_y, 
+                             linestyle=self.fit_line_styles[line_props['fit_line_style'].get()], 
+                             color=line_props['fit_line_color'].get(), 
+                             linewidth=line_props['fit_line_thickness'].get(), 
+                             label=line_props['fit_legend_label'].get())
 
         font = self.selected_font.get()
         legend_font = {'family': font, 'weight': 'normal', 'size': self.legend_fontsize.get()}
